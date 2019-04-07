@@ -33,7 +33,7 @@ public class Auto {
         LookForMinerals,
         PushGold,
         Slide2,
-        TurnByCamera,
+        WaitToDetectPicture,
         MoveToDepot,
         DropMarker,
         MoveToCrater,
@@ -145,16 +145,29 @@ public class Auto {
 
     Mode slide2()
     {
-        telemetry.addData("time", getTime());
+        double[] location = camera.getLocation();
+        if(location != null) {
+            setiSP(location);
+            robot.driveEngine.checkpoints.clear();
+            return Mode.MoveToDepot;
+        }
+
         if (robot.driveEngine.moveOnPath("slide2 Y",
                 new double[]{0, slide2Y}))
-            if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
+            if(robot.driveEngine.moveOnPath("slide2 X and Turn",
+                    DriveEngine.Positioning.Absolute,false,
                     new double[]{-33, 28},
                     new double[]{Math.PI / 4}))
             {
-                return Mode.TurnByCamera;
+                robot.driveEngine.stop();
             }
         return Mode.Slide2;
+    }
+
+    void setiSP(double[] location)
+    {
+        double max = Math.max(Math.abs(location[0]), Math.abs(location[1]));
+        iSP = max == Math.abs(location[1])? 1 : -1;
     }
 
 
@@ -164,7 +177,7 @@ public class Auto {
 //    where the Blue Alliance Station is. (Positive is from the center, towards the BlueAlliance station)
 //    The Z axis runs from the floor, upwards towards the ceiling.  (Positive is above the floor)
 
-    Mode turnByCamera()
+    Mode waitToDetectPicture()
     {
         if(robot.name == Bogg.Name.Fakebot)
             return Mode.MoveToDepot;
@@ -177,7 +190,7 @@ public class Auto {
             return Mode.MoveToDepot;
 
         }
-        return Mode.TurnByCamera;
+        return Mode.WaitToDetectPicture;
     }
 
 
@@ -205,8 +218,8 @@ public class Auto {
 
     Mode moveToCrater()
     {
-        double[] drive = robot.driveEngine.smoothDrive(0, -1, 2);
-        robot.driveEngine.drive(drive[0], drive[1]);
+        robot.driveEngine.drive(0, true, DriveEngine.SmoothingType.Linear, 2,
+                0,1);
         telemetry.addData("yDist", robot.driveEngine.yDist());
         telemetry.addData("usingImu", robot.sensors.usingImu);
 

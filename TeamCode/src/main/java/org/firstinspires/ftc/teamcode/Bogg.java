@@ -206,31 +206,18 @@ public class Bogg
         }
     }
 
-    void manualDrive(boolean op, double x, double y)
+    void manualDrive(boolean op, double x, double y, double spin)
     {
-        double[] drive = driveEngine.smoothDrive(x, -y, op? 1:3);
-        double leftX = drive[0];
-        double leftY = drive[1];
-
         telemetry.addData("gamepad x", x);
         telemetry.addData("gamepad y", y);
-        telemetry.addLine("Note: y is negated");
+        telemetry.addData("gamepad spin", spin);
+        telemetry.addLine("Note: y and spin are negated");
 
-        driveEngine.drive(op, leftX, leftY);
+        driveEngine.drive(op, x, -y, -spin);
     }
 
     ElapsedTime spinTimer = new ElapsedTime();
 
-    /**
-     * The default precedence is 0.
-     * @param op: Determines if 
-     * @param x: Power in the x direction
-     * @param y: Power in the y direction
-     * @param spin: Power towards rotation
-     */
-    void manualDrive2(boolean op, double x, double y, double spin){
-        manualDrive2(op,x,y,spin,0);
-    }
 
     /**
      *
@@ -240,18 +227,33 @@ public class Bogg
      * @param spin: Power towards rotation
      * @param precedence
      */
-    void manualDrive2(boolean op, double x, double y, double spin, int precedence)
+    void manualDriveFixedForwardAutoCorrect(int precedence, boolean op, double x, double y, double spin)
+    {
+        manualDriveAutoCorrect(precedence, op, x, y, spin);
+
+        driveEngine.orientRobotDirectionToField();
+
+        telemetry.addData("gamepad x", x);
+        telemetry.addData("gamepad y", y);
+        telemetry.addData("gamepad spin", spin);
+        telemetry.addLine("Note: y and spin are negated");
+    }
+
+
+    void manualDriveAutoCorrect(int precedence, boolean op, double x, double y, double spin)
     {
         if(spin != 0)
             spinTimer.reset();
-        boolean smoothSpin = true;
-        if(spinTimer.seconds() < 1)
+        if(spinTimer.seconds() < 1) {
             driveEngine.resetForward();
+            driveEngine.drive(precedence, op, DriveEngine.SmoothingType.Linear,op? 1:2.5,true,
+                    true, x, -y, -spin);
+        }
         else {
-            spin = -driveEngine.faceForward();
-            smoothSpin = false;
+            driveEngine.drive(precedence, op, DriveEngine.SmoothingType.Linear, op? 1:2.5,true,
+                    false, x, -y, driveEngine.angularVelocityNeededToFaceForward());
         }
-        driveEngine.smoothDrive2(op, x, -y, -spin, op? 1:2.5, smoothSpin, true, precedence);
+
 
         telemetry.addData("gamepad x", x);
         telemetry.addData("gamepad y", y);
@@ -259,59 +261,6 @@ public class Bogg
         telemetry.addLine("Note: y and spin are negated");
     }
 
-    void manualDriveAutoCorrect(boolean op, double x, double y, double t)
-    {
-        if(t < 1){
-            driveEngine.resetForward();
-            manualDrive(op, x, y);
-        }
-
-        double[] drive = driveEngine.smoothDrive(x, -y, op? 1:3);
-        double leftX = drive[0];
-        double leftY = drive[1];
-        double spin = driveEngine.faceForward();
-        driveEngine.drive(op, leftX, leftY, spin);
-
-        telemetry.addData("gamepad x", x);
-        telemetry.addData("gamepad y", y);
-        telemetry.addLine("Note: y is negated");
-    }
-
-    void manualCurvy(boolean op, double x, double y, double s)
-    {
-        double[] drive = driveEngine.smoothDrive(x, -y, op? 1:3);
-        double leftX = drive[0];
-        double leftY = drive[1];
-        double spin = driveEngine.smoothSpin(-s/3);
-
-        telemetry.addData("gamepad x", x);
-        telemetry.addData("gamepad y", y);
-        telemetry.addData("gamepad spin", s);
-        telemetry.addLine("Note: y and spin are negated");
-
-        driveEngine.drive(op, leftX, leftY, spin);
-    }
-
-    boolean manualRotate(boolean button, double spin)
-    {
-        if(spin == 0) {  //if we're not rotating
-            if(rotating){  //but if the boolean says we are
-                rotating = false;
-                driveEngine.resetForward(); //resets forward after rotating so we can auto-correct
-            }
-            return false;
-        }
-        rotating = true;
-
-        if(button)
-            driveEngine.rotate(-spin/3);
-        else
-            driveEngine.rotate(driveEngine.smoothSpin(-spin/3));
-
-        telemetry.addData("gamepad spin", spin);
-        telemetry.addLine("Note: spin is negated");
-        return true;
-    }
 
     private double derivedRadius = 12;
     void updateRadius()
@@ -330,7 +279,7 @@ public class Bogg
                 driveEngine.drive(x, 0);
         }
         else
-            manualCurvy(op, x, y, spin);
+            manualDrive(op, x, y, spin);
     }
 
     void floatMotors()

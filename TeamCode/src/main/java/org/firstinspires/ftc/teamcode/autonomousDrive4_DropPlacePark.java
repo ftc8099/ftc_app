@@ -33,8 +33,8 @@ public class autonomousDrive4_DropPlacePark extends LinearOpMode
                 case Slide2:
                     action = auto.slide2();
                     break;
-                case TurnByCamera:
-                    action = auto.turnByCamera();
+                case WaitToDetectPicture:
+                    action = auto.waitToDetectPicture();
                     break;
                 case MoveToDepot:
                     action = auto.moveToDepot();

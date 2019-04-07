@@ -16,10 +16,12 @@ abstract class DriveEngine {
 
     static double effectiveWheelDiameter = 6;
 
-    private double spinAve,rAve,forward;
+    private double spinAve,rAve,thetaAve,forward;
     private double driveAngle;
+    private double initialAngle;
     ElapsedTime timer;
     Telemetry telemetry;
+    SmoothingType currentSmoothing = SmoothingType.None;
 
     double[] blackValues = new double[3];
 
@@ -38,10 +40,33 @@ abstract class DriveEngine {
     }
 
     //Potential drive values
-    private ArrayList<double[][]> potentialDriveValues = new ArrayList<>();
+    private ArrayList<DriveValuePacket> potentialDrivePackets = new ArrayList<>();
 
     //Answers the question: which drive value do we choose?
     private ArrayList<Integer> precedences = new ArrayList<>();
+
+
+    private ArrayList<Double> smoothRList = new ArrayList<>();
+    private ArrayList<Double> smoothThetaList = new ArrayList<>();
+    private ArrayList<Double> smoothSpinList = new ArrayList<>();
+
+    enum SmoothingType {
+        Exponential,
+        Linear,
+        None
+    }
+
+    enum SpinSmoothing{
+        Off(0),
+        Normal(4);
+
+        double seconds;
+        SpinSmoothing(double seconds)
+        {
+            this.seconds = seconds;
+        }
+    }
+
 
     /**
      *  Drives with zero power and high precedence
@@ -61,7 +86,7 @@ abstract class DriveEngine {
 
     /**
      * When only numbers are provided, we assume op is false.
-     * @param args: drive values such as x, y, and spin
+     * @param args: x, y, and spin
      */
     void drive(double... args) {
         drive(false,args);
@@ -70,9 +95,24 @@ abstract class DriveEngine {
     /**
      * The default precedence is 0.
      * @param op means overpowered: When op, a motor is maxed out if the overall power > .9
-     * @param args: drive values such as x, y, and spin
+     * @param args: x, y, and spin
      */
     void drive(boolean op, double ... args){drive(0, op, args);}
+
+    void drive(int precedence, boolean op, double ... args)
+    {
+        drive(precedence, op, SmoothingType.None, 0, args);
+    }
+
+    void drive(int precedence, boolean op, SmoothingType type, double rSeconds, double ... args)
+    {
+        drive(precedence, op, type, rSeconds,false, false,  args);
+    }
+
+    void drive(int precedence, boolean op, SmoothingType type, double rSeconds, boolean smoothTheta, boolean smoothSpin, double... args)
+    {
+        drive(precedence, new DriveValuePacket(op, type, rSeconds, smoothTheta, smoothSpin, args));
+    }
 
     /**
      * This method adds drive values to the list of potential drive values.
@@ -81,11 +121,10 @@ abstract class DriveEngine {
      * Ties are broken like such: non-zero values are chosen over stopping.
      * More recent values are chosen over old ones.
      *
-     * @param precedence The precedence of the drive values
-     * @param op means overpowered: When op, one motor is maxed out if the overall power > .9
-     * @param args: drive values such as x, y, and spin
+     * @param precedence The precedence of the drive packet
+     * @param potentialDrivePacket: A packet of drive values
      */
-    void drive(int precedence, boolean op, double ... args) {
+    void drive(int precedence, DriveValuePacket potentialDrivePacket) {
         //If we've already logged power values this loop
         if(precedences.size() != 0){
             //If our precedence is too low, we break out, no more math needed.
@@ -95,18 +134,16 @@ abstract class DriveEngine {
             //Unless stopping has explicit precedence.
             //If the values are zero, we break out.
             if(precedence == MyMath.max(precedences))
-                if(MyMath.absoluteMax(args) == 0)
+                if(MyMath.absoluteMax(potentialDrivePacket.args) == 0)
                     return;
         }
         //If we've made it to this point, we want to keep our drive values.
         //We save the precedence
         precedences.add(precedence);
         //We save op and args into an array.
-        double[][] potential = new double[2][];
-        potential[0] = new double[]{op? 1.:0.};
-        potential[1] = args;
+
         //We put our drive values in the first spot in the potential ArrayList.
-        potentialDriveValues.add(0, potential);
+        potentialDrivePackets.add(0, potentialDrivePacket);
     }
 
     /**
@@ -130,8 +167,7 @@ abstract class DriveEngine {
 
         //We prepare for the next loop by clearing one-loop lists and counters.
         precedences.clear();
-        potentialDriveValues.clear();
-        smoothAdditions = 0;
+        potentialDrivePackets.clear();
         updateTrueDistances();
         moveRobotOnScreen();
     }
@@ -144,36 +180,21 @@ abstract class DriveEngine {
 
     /**
      * This method selects the proper drive values from the potentials.
-     * It processes the varargs into x, y and spin for use in drive().
+     * It processes x, y and spin for use in drive().
      */
     private double[] processPotentials()
     {
-        double x = 0,y = 0,spin = 0;
-
         //If we haven't been given any drive values, we stop.
-        if(potentialDriveValues.size() == 0){
-            potentialDriveValues.add(new double[][]{new double[]{0}, new double[]{0}});
+        if(potentialDrivePackets.size() == 0){
+            stop();
+            return processPotentials();
         }
 
-        //We convert op back to a boolean: Does it equal one?
-        boolean op = potentialDriveValues.get(0)[0][0] == 1;
-        double[] args = potentialDriveValues.get(0)[1];
+        DriveValuePacket dvp = potentialDrivePackets.get(0);
+        double x = dvp.x;
+        double y = dvp.y;
+        double spin = dvp.spin;
 
-        switch (args.length)    //assign x, y and spin
-        {
-            case 3:
-                spin = args[2];  //x,y,spin
-            case 2:
-                x = args[0];     //x,y
-                y = args[1];
-                break;
-            case 1:
-                spin = args[0];  //spin
-                break;
-            default:      //This shouldn't happen
-                telemetry.addLine("Argument length of zero in drive");
-                break;
-        }
 
         if(MyMath.absoluteMax(x, y) == 0) {  //If we are to stop,
             smoothThetaList.clear();         //Reset our direction: no delay
@@ -188,19 +209,72 @@ abstract class DriveEngine {
         x = xPrime;
         y = yPrime;
 
+        double r = Math.hypot(x,y);
+        r = Math.min(r, 1);
+
+        double theta = Math.atan2(y, x);
+
+        double spinSeconds = 4;
+        double thetaSeconds = 2/3.;
+
+        switch (dvp.type) {
+            case Exponential:
+                double rAlpha = Bogg.getAlpha(dvp.rSeconds);
+                double spinAlpha = Bogg.getAlpha(spinSeconds);
+                double thetaAlpha = Bogg.getAlpha(thetaSeconds);
+
+                rAve = r == 0 ? 0 : rAve + rAlpha * (r - rAve);
+                spinAve = spin == 0 ? 0 : spinAve + spinAlpha * (spin - spinAve);
+                thetaAve += thetaAlpha * MyMath.loopAngle(theta, thetaAve);
+                break;
+
+            case Linear:
+                smoothRList.add(r);
+                smoothSpinList.add(spin);
+                smoothThetaList.add(theta);
+
+                MyMath.trimFromFront(smoothRList, (int) Math.round(dvp.rSeconds / Bogg.averageClockTime));
+                MyMath.trimFromFront(smoothSpinList, (int) Math.round(4 / Bogg.averageClockTime));
+                MyMath.trimFromFront(smoothThetaList, (int) Math.round(.66 / Bogg.averageClockTime));
+
+                rAve = (r == 0) ? 0 : MyMath.ave(smoothRList);
+                spinAve = (spin == 0 || !dvp.smoothSpin) ? spin : MyMath.ave(smoothSpinList);
+                thetaAve = dvp.smoothTheta ? MyMath.loopAve(smoothThetaList) : theta;
+                break;
+
+            case None:
+                rAve = r;
+                spinAve = spin;
+                thetaAve = theta;
+        }
+
+
         telemetry.addData("driveE x", x);
         telemetry.addData("driveE y", y);
         telemetry.addData("driveE rotate", spin);
 
         blackValues = new double[]{x,y,spin};
 
-        return new double[]{op? 1:0, x, y, spin};
+        return new double[]{dvp.op? 1:0,
+                Math.cos(thetaAve) * rAve,
+                Math.sin(thetaAve) * rAve,
+                spinAve};
     }
 
 
     void driveAtAngle(double angle)
     {
         driveAngle = angle;
+    }
+
+    void resetFieldHeadingToRobotHeading()
+    {
+        driveAngle = initialAngle + spinAngle();
+    }
+
+    void orientRobotDirectionToField()
+    {
+        driveAtAngle(MyMath.loopAngle(driveAngle, spinAngle()));
     }
 
 
@@ -236,9 +310,13 @@ abstract class DriveEngine {
         return moveOnPath(Positioning.Relative, false, args);
     }
     boolean moveOnPath(String key, double[] ... args){
+        return moveOnPath(key, Positioning.Relative, false, args);
+    }
+
+    boolean moveOnPath(String key, Positioning positioning, boolean continuous, double[] ... args){
         if(keyList.contains(key))
             return true;
-        if(moveOnPath(Positioning.Relative, false, args)){
+        if(moveOnPath(positioning, continuous, args)){
             keyList.add(key);
             return true;
         }
@@ -302,7 +380,7 @@ abstract class DriveEngine {
                         break;
                     }
                 }
-                rotate(face(targetAngle));
+                rotate(angularVelocityNeededToFace(targetAngle));
                 justResetTarget = false;
                 break;
             case 3:
@@ -310,7 +388,7 @@ abstract class DriveEngine {
 
             case 2:
                 double[] point = args[c];
-                double spin = face(targetAngle);
+                double spin = angularVelocityNeededToFace(targetAngle);
 
                 double deltaX = 0;
                 double deltaY = 0;
@@ -335,22 +413,13 @@ abstract class DriveEngine {
 
                 double[] drive = move(deltaX, deltaY);
 
-                //smooth the driving when revving to a high speed, then reset the average to 0.
-                if(Math.hypot(drive[0],drive[1]) > .3)
-                    drive = smoothDrive(drive[0], drive[1], 1);
-                if(Math.hypot(drive[0],drive[1]) < .1)
-                    smoothDrive(0,0, 1);
+
 
                 double driveX = drive[0];
                 double driveY = drive[1];
 
-                if(r <= .75 || Math.hypot(driveX, driveY) == 0) { //happens when theta changes rapidly
-                    if(continuous && c == checkpoints.size() - 1) {
-                        drive(driveX, driveY, spin);
-                        drdtArray = new ArrayList<>();
-                        dThdtArray = new ArrayList<>();
-                    }
-                    else {
+                if(r <= .75 || Math.hypot(driveX, driveY) == 0 //happens when theta changes rapidly
+                    && !(continuous && c == checkpoints.size() - 1 )){ //Don't move on if continuous
                         stop();
                         if(args[c].length == 3) {
                             forward += args[c][2];
@@ -362,10 +431,16 @@ abstract class DriveEngine {
                         drdtArray = new ArrayList<>();
                         dThdtArray = new ArrayList<>();
                         justResetTarget = true;
-                    }
+                        break;
                 }
-                else
-                    drive(driveX, driveY, spin);
+                else {
+                    //smooth the driving when revving to a high speed, then reset the average to 0.
+                    if(Math.hypot(drive[0],drive[1]) > .3)
+                        drive(0,false,SmoothingType.Linear, 1,
+                                false, false,drive[0], drive[1], spin);
+                    else
+                        drive(0, false, drive[0], drive[1], spin);
+                }
                 justResetTarget = false;
                 break;
         }
@@ -373,75 +448,9 @@ abstract class DriveEngine {
     }
 
 
-    double[] smoothDrive(double x, double y, double rSeconds)
-    {
-        double alpha = Bogg.getAlpha(rSeconds);
-        double r = Math.hypot(x,y);
-        double theta = Math.atan2(y, x);
 
-        if(r > 1)
-            r = 1;
-        if(r == 0)
-            rAve = 0;
-        else
-            rAve = alpha * r + (1-alpha) * rAve;
-
-        return new double[]{Math.cos(theta) * rAve,
-                            Math.sin(theta) * rAve};
-    }
-
-    private ArrayList<Double> smoothRList = new ArrayList<>();
-    private ArrayList<Double> smoothThetaList = new ArrayList<>();
-    private ArrayList<Double> smoothSpinList = new ArrayList<>();
-    private int smoothAdditions = 0;
-    void smoothDrive2(boolean op, double x, double y, double spin,
-                          double rSeconds, boolean smoothSpin, boolean smoothTheta, int precedence)
-    {
-        if(precedence < MyMath.max(precedences))
-            return;
-        if(MyMath.absoluteMax(x, y, spin) == 0) {
-            drive(precedence, op, 0);
-            return;
-        }
-        if(smoothAdditions > 0) {
-            smoothRList.remove(smoothRList.size() - 1);
-            smoothSpinList.remove(smoothSpinList.size() - 1);
-            smoothThetaList.remove(smoothThetaList.size() - 1);
-        }
-        smoothAdditions++;
-
-        double r = Math.hypot(x,y);
-        double theta = Math.atan2(y, x);
-
-        smoothRList.add(r);
-        smoothSpinList.add(spin);
-        smoothThetaList.add(theta);
-
-        MyMath.trimFromFront(smoothRList,     (int)Math.round(rSeconds / Bogg.averageClockTime));
-        MyMath.trimFromFront(smoothSpinList,  (int)Math.round(       4 / Bogg.averageClockTime));
-        MyMath.trimFromFront(smoothThetaList, (int)Math.round(     .66 / Bogg.averageClockTime));
-
-        r     = (r==0)?      0 : MyMath.ave(smoothRList);
-        spin  = (spin==0 || !smoothSpin)?   spin : MyMath.ave(smoothSpinList);
-        theta = smoothTheta? MyMath.loopAve(smoothThetaList) : theta;
-
-        drive(precedence, op,Math.cos(theta) * r, Math.sin(theta) * r, spin);
-    }
-
-
-    double smoothSpin(double spin)
-    {
-        double alpha = Bogg.getAlpha(4);
-        if(spin * spinAve < 0 || spin == 0)
-            spinAve = 0;
-        else
-            spinAve = alpha * spin + (1-alpha ) * spinAve;
-        return spinAve;
-    }
-
-
-    double faceForward(){
-        return face(forward);
+    double angularVelocityNeededToFaceForward(){
+        return angularVelocityNeededToFace(forward);
     }
 
     private double sumSpinError = 0;
@@ -452,7 +461,13 @@ abstract class DriveEngine {
     double sI = 8; //Time to correct past error
     double sD = .5; //fully account for this much time in the future at current error decreasing rate
 
-    private double face(double angle)
+    /**
+     * This method uses PID control to rotate the robot to a certain angle,
+     *  or keep the robot facing forward.
+     * @param angle the robot should face.
+     * @return the rotating power needed to reach that angle
+     */
+    private double angularVelocityNeededToFace(double angle)
     {
         //    u(t) = MV(t) = P *( e(t) + 1/I* integral(0,t) (e(tau) *dtau) + 1/D *de(t)/dt )
         //    where

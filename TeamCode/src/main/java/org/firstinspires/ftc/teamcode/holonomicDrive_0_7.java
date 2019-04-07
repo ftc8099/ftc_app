@@ -34,7 +34,7 @@ public class holonomicDrive_0_7 extends LinearOpMode
                        new double[]{0,0});
             }
             else
-                robot.manualDrive2(g1.left_stick_button,g1.left_stick_x, g1.left_stick_y, g1.right_stick_x);
+                robot.manualDrive(g1.left_stick_button,g1.left_stick_x, g1.left_stick_y, g1.right_stick_x);
 
             if(g1.dpad_down)
                 robot.setBrake(Bogg.Direction.On);
