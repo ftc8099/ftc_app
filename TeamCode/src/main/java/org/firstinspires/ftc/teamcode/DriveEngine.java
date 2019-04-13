@@ -92,21 +92,48 @@ abstract class DriveEngine {
     }
 
     /**
-     * The default precedence is 0.
+     * By default, the precedence is 0, and there is no smoothing.
      * @param op means overpowered: When op, a motor is maxed out if the overall power > .9
      * @param args: x, y, and spin
      */
     void drive(boolean op, double ... args){drive(0, 0, op, args);}
 
+    /**
+     * By default, only r is smoothed; smoothTheta and smoothSpin are false.
+     * @param precedence: Higher precedence drive values are taken over low ones.
+     * @param rSeconds: The number of seconds to reach the true ga
+     * @param op means overpowered: When op, a motor is maxed out if the overall power > .9
+     * @param args: x, y, and spin
+     */
+    void drive(int precedence, double rSeconds, boolean op,  double ... args)
     {
         drive(precedence, rSeconds, op, false, false,  args);
     }
 
+    /**
+     * currentSmoothing is the default smoothing.
+     * @param precedence: Higher precedence drive values are taken over low ones.
+     * @param rSeconds: The number of seconds to reach the input value
+     * @param op means overpowered: When op, a motor is maxed out if the overall power > .9
+     * @param smoothSpin: Whether spinning should be smoothed or taken as is
+     * @param smoothTheta: Whether the direction of motion should be smoothed or taken as is.
+     * @param args: x, y, and spin
+     */
     void drive(int precedence, double rSeconds, boolean op, boolean smoothTheta, boolean smoothSpin, double... args)
     {
         drive(precedence, rSeconds, op, currentSmoothing, smoothTheta, smoothSpin, args);
     }
 
+    /**
+     * currentSmoothing is the default smoothing.
+     * @param precedence: Higher precedence drive values are taken over low ones.
+     * @param rSeconds: The number of seconds to reach the input value
+     * @param op means overpowered: When op, a motor is maxed out if the overall power > .9
+     * @param type: Exponential or Linear smoothing
+     * @param smoothSpin: Whether spinning should be smoothed or taken as is
+     * @param smoothTheta: Whether the direction of motion should be smoothed or taken as is.
+     * @param args: x, y, and spin
+     */
     void drive(int precedence, double rSeconds, boolean op, SmoothingType type, boolean smoothTheta, boolean smoothSpin, double... args)
     {
         drive(precedence, new DriveValuePacket(rSeconds, op, type, smoothTheta, smoothSpin, args));
