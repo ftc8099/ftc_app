@@ -225,7 +225,6 @@ public class Bogg
      * @param x: Power in the x direction
      * @param y: Power in the y direction
      * @param spin: Power towards rotation
-     * @param precedence
      */
     void manualDriveFixedForwardAutoCorrect(boolean op, double x, double y, double spin)
     {
@@ -261,27 +260,6 @@ public class Bogg
         telemetry.addLine("Note: y and spin are negated");
     }
 
-
-    private double derivedRadius = 12;
-    void updateRadius()
-    {
-        derivedRadius = endEffector.getRadius();
-    }
-
-    void manualDriveVarOrbit(boolean op, double y, double x, double spin, boolean orbit)
-    {
-        double max = Math.max(Math.abs(x), Math.abs(y));
-
-        if(orbit) {
-            if (max == Math.abs(y))
-                driveEngine.orbit(derivedRadius + driveEngine.xDist(), 0, y / 2);
-            else
-                driveEngine.drive(x, 0);
-        }
-        else
-            manualDrive(op, x, y, spin);
-    }
-
     void floatMotors()
     {
         driveEngine.floatMotors();
@@ -294,26 +272,22 @@ public class Bogg
     }
 
 
-    double n = 0;
-    double lastTime = 0;
+    private double lastTime = 0;
     /**
      * Should only be called once per loop
-     * @return the average time for one loop
+     * Updates the average time for one loop
+     * Updates the driveEngine and telemetry
      */
     void update()
     {
         double t = timer.seconds();
         double clockTime = t - lastTime;
         lastTime = t;
-
-        if(n==0){
-            n++;
+        if(clockTime == 0)
             return;
-        }
 
-        averageClockTime = (clockTime * .02 + averageClockTime * .98); //expontential average
+        averageClockTime = (clockTime * .02 + averageClockTime * .98); //exponential average
 
-        n++;
         driveEngine.update();
         telemetry.update();
         telemetry.addData("currentClockTime", clockTime);
@@ -322,6 +296,8 @@ public class Bogg
 
     static double getAlpha(double seconds)
     {
+        if(seconds == 0)
+            return 1;
         return 1 - Math.pow(.05, averageClockTime/seconds); //reaches 95% in this many seconds
     }
 }
