@@ -17,7 +17,7 @@ public class holonomicDrive_0_7 extends LinearOpMode
     public void runOpMode()
     {
         robot = Bogg.determineRobot(hardwareMap, telemetry);
-        robot.driveEngine.driveAtAngle(0);
+        robot.driveEngine.setInitialAngle(0);
         timer = new ElapsedTime();
         g1 = gamepad1;
         boolean runBack = false;

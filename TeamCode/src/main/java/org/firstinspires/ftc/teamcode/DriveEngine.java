@@ -17,8 +17,7 @@ abstract class DriveEngine {
     static double effectiveWheelDiameter = 6;
 
     private double spinAve,rAve,thetaAve,forward;
-    private double driveAngle;
-    private double initialAngle;
+    private double driveAngle,initialAngle,fieldAngle;
     ElapsedTime timer;
     Telemetry telemetry;
     SmoothingType currentSmoothing = SmoothingType.None;
@@ -262,19 +261,25 @@ abstract class DriveEngine {
     }
 
 
-    void driveAtAngle(double angle)
+    void setInitialAngle(double angle)
     {
-        driveAngle = angle;
+        driveAngle = initialAngle = fieldAngle = angle;
     }
 
+    /**
+     * Also known as pressing x
+     */
     void resetFieldHeadingToRobotHeading()
     {
-        driveAngle = initialAngle + spinAngle();
+        fieldAngle = initialAngle + spinAngle();
     }
 
+    /**
+     * Should be called once per loop in fixed-forward driving.
+     */
     void orientRobotDirectionToField()
     {
-        driveAtAngle(MyMath.loopAngle(driveAngle, spinAngle()));
+        driveAngle = MyMath.loopAngle(fieldAngle, spinAngle());
     }
 
 

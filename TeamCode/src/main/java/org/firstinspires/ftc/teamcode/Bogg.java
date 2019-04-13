@@ -68,7 +68,7 @@ public class Bogg
                 break;
 
             case Fauxbot:
-                driveEngine.driveAtAngle(-Math.PI / 2);
+                driveEngine.setInitialAngle(-Math.PI / 2);
                 break;
 
             case Fakebot:

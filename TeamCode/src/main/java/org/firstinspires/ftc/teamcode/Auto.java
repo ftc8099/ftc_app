@@ -17,7 +17,7 @@ public class Auto {
     Auto(HardwareMap hardwareMap, Telemetry telemetry)
     {
         this.robot = Bogg.determineRobot(hardwareMap, telemetry);
-        robot.driveEngine.driveAtAngle(0);
+        robot.driveEngine.setInitialAngle(0);
         this.telemetry = telemetry;
         camera = new Camera(hardwareMap, telemetry, false, true);
         telemetry.addLine("Camera Loaded");
