@@ -218,8 +218,7 @@ public class Auto {
 
     Mode moveToCrater()
     {
-        robot.driveEngine.drive(0, true, DriveEngine.SmoothingType.Linear, 2,
-                0,1);
+        robot.driveEngine.drive(0,2,true, 0,1);
         telemetry.addData("yDist", robot.driveEngine.yDist());
         telemetry.addData("usingImu", robot.sensors.usingImu);
 

@@ -70,7 +70,7 @@ public class holonomicDrive_0_2 extends LinearOpMode
 
 
             //Arm and drive manual
-            robot.manualDriveFixedForwardAutoCorrect(0,
+            robot.manualDriveFixedForwardAutoCorrect(
                     g1.left_stick_button,
                     g1.left_stick_x,
                     g1.left_stick_y,

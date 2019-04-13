@@ -1,15 +1,15 @@
 package org.firstinspires.ftc.teamcode;
 
 class DriveValuePacket {
+    double rSeconds;
     boolean op;
+    DriveEngine.SmoothingType type;
+    boolean smoothTheta;
+    boolean smoothSpin;
     double[] args;
     double x;
     double y;
     double spin;
-    boolean smoothSpin;
-    double rSeconds;
-    boolean smoothTheta;
-    DriveEngine.SmoothingType type;
 
     /**
      * @param op means overpowered: When op, one motor is maxed out if the overall power > .9
@@ -19,8 +19,8 @@ class DriveValuePacket {
      * @param type of smoothing: Exponential, Linear, or None
      * @param args: X, Y, and Spin; 1, 2, or 3 are fine.
      */
-    DriveValuePacket(boolean op,  DriveEngine.SmoothingType type,
-                     double rSeconds, boolean smoothTheta, boolean smoothSpin, double... args)
+    DriveValuePacket(double rSeconds, boolean op, DriveEngine.SmoothingType type,
+                     boolean smoothTheta, boolean smoothSpin, double... args)
     {
         this.op = op;
         this.smoothSpin = smoothSpin;

@@ -227,9 +227,9 @@ public class Bogg
      * @param spin: Power towards rotation
      * @param precedence
      */
-    void manualDriveFixedForwardAutoCorrect(int precedence, boolean op, double x, double y, double spin)
+    void manualDriveFixedForwardAutoCorrect(boolean op, double x, double y, double spin)
     {
-        manualDriveAutoCorrect(precedence, op, x, y, spin);
+        manualDriveAutoCorrect(op, x, y, spin);
 
         driveEngine.orientRobotDirectionToField();
 
@@ -240,18 +240,18 @@ public class Bogg
     }
 
 
-    void manualDriveAutoCorrect(int precedence, boolean op, double x, double y, double spin)
+    void manualDriveAutoCorrect(boolean op, double x, double y, double spin)
     {
         if(spin != 0)
             spinTimer.reset();
         if(spinTimer.seconds() < 1) {
             driveEngine.resetForward();
-            driveEngine.drive(precedence, op, DriveEngine.SmoothingType.Linear,op? 1:2.5,true,
-                    true, x, -y, -spin);
+            driveEngine.drive(0, op? 1:2.5, op,true,true,
+                    x, -y, -spin);
         }
         else {
-            driveEngine.drive(precedence, op, DriveEngine.SmoothingType.Linear, op? 1:2.5,true,
-                    false, x, -y, driveEngine.angularVelocityNeededToFaceForward());
+            driveEngine.drive(0, op? 1:2.5, op,true,false,
+                    x, -y, driveEngine.angularVelocityNeededToFaceForward());
         }
 
 

@@ -71,7 +71,7 @@ abstract class DriveEngine {
      *  Drives with zero power and high precedence
      */
     void stop(){
-        drive(2,false, 0);
+        drive(2,0,false,0);
     }
 
     /**
@@ -96,21 +96,20 @@ abstract class DriveEngine {
      * @param op means overpowered: When op, a motor is maxed out if the overall power > .9
      * @param args: x, y, and spin
      */
-    void drive(boolean op, double ... args){drive(0, op, args);}
+    void drive(boolean op, double ... args){drive(0, 0, op, args);}
 
-    void drive(int precedence, boolean op, double ... args)
     {
-        drive(precedence, op, SmoothingType.None, 0, args);
+        drive(precedence, rSeconds, op, false, false,  args);
     }
 
-    void drive(int precedence, boolean op, SmoothingType type, double rSeconds, double ... args)
+    void drive(int precedence, double rSeconds, boolean op, boolean smoothTheta, boolean smoothSpin, double... args)
     {
-        drive(precedence, op, type, rSeconds,false, false,  args);
+        drive(precedence, rSeconds, op, currentSmoothing, smoothTheta, smoothSpin, args);
     }
 
-    void drive(int precedence, boolean op, SmoothingType type, double rSeconds, boolean smoothTheta, boolean smoothSpin, double... args)
+    void drive(int precedence, double rSeconds, boolean op, SmoothingType type, boolean smoothTheta, boolean smoothSpin, double... args)
     {
-        drive(precedence, new DriveValuePacket(op, type, rSeconds, smoothTheta, smoothSpin, args));
+        drive(precedence, new DriveValuePacket(rSeconds, op, type, smoothTheta, smoothSpin, args));
     }
 
     /**
@@ -123,7 +122,7 @@ abstract class DriveEngine {
      * @param precedence The precedence of the drive packet
      * @param potentialDrivePacket: A packet of drive values
      */
-    void drive(int precedence, DriveValuePacket potentialDrivePacket) {
+    private void drive(int precedence, DriveValuePacket potentialDrivePacket) {
         //If we've already logged power values this loop
         if(precedences.size() != 0){
             //If our precedence is too low, we break out, no more math needed.
