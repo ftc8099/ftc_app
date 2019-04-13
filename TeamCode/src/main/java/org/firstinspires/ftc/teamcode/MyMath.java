@@ -137,7 +137,7 @@ public class MyMath {
 
     static void trimFromFront(ArrayList<?> list, int size)
     {
-        while(list.size() > size && size > 0) {
+        while(list.size() > size && list.size() > 0) {
             list.remove(0);
         }
     }
