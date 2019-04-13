@@ -20,7 +20,7 @@ abstract class DriveEngine {
     private double driveAngle,initialAngle,fieldAngle;
     ElapsedTime timer;
     Telemetry telemetry;
-    SmoothingType currentSmoothing = SmoothingType.None;
+    SmoothingType currentSmoothing = SmoothingType.Linear;
 
     double[] blackValues = new double[3];
 
@@ -51,19 +51,7 @@ abstract class DriveEngine {
 
     enum SmoothingType {
         Exponential,
-        Linear,
-        None
-    }
-
-    enum SpinSmoothing{
-        Off(0),
-        Normal(4);
-
-        double seconds;
-        SpinSmoothing(double seconds)
-        {
-            this.seconds = seconds;
-        }
+        Linear
     }
 
 
@@ -254,23 +242,19 @@ abstract class DriveEngine {
                 break;
 
             case Linear:
+
+                MyMath.trimFromFront(smoothRList, (int) Math.round(dvp.rSeconds / Bogg.averageClockTime) -1);
+                MyMath.trimFromFront(smoothSpinList, (int) Math.round(4 / Bogg.averageClockTime) -1);
+                MyMath.trimFromFront(smoothThetaList, (int) Math.round(.66 / Bogg.averageClockTime) -1);
+
                 smoothRList.add(r);
                 smoothSpinList.add(spin);
                 smoothThetaList.add(theta);
-
-                MyMath.trimFromFront(smoothRList, (int) Math.round(dvp.rSeconds / Bogg.averageClockTime));
-                MyMath.trimFromFront(smoothSpinList, (int) Math.round(4 / Bogg.averageClockTime));
-                MyMath.trimFromFront(smoothThetaList, (int) Math.round(.66 / Bogg.averageClockTime));
 
                 rAve = (r == 0) ? 0 : MyMath.ave(smoothRList);
                 spinAve = (spin == 0 || !dvp.smoothSpin) ? spin : MyMath.ave(smoothSpinList);
                 thetaAve = dvp.smoothTheta ? MyMath.loopAve(smoothThetaList) : theta;
                 break;
-
-            case None:
-                rAve = r;
-                spinAve = spin;
-                thetaAve = theta;
         }
 
 
@@ -467,10 +451,10 @@ abstract class DriveEngine {
                 else {
                     //smooth the driving when revving to a high speed, then reset the average to 0.
                     if(Math.hypot(drive[0],drive[1]) > .3)
-                        drive(0,false,SmoothingType.Linear, 1,
-                                false, false,drive[0], drive[1], spin);
+                        drive(0,1,false, false, false,
+                                drive[0], drive[1], spin);
                     else
-                        drive(0, false, drive[0], drive[1], spin);
+                        drive(drive[0], drive[1], spin);
                 }
                 justResetTarget = false;
                 break;
