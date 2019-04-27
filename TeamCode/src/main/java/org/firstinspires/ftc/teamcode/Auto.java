@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -84,6 +85,7 @@ public class Auto {
 
     Mode actuallyDrop()
     {
+        robot.lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         if(!movingBreak)
         {
             timer.reset();
@@ -97,14 +99,14 @@ public class Auto {
         {
             robot.setBrake(Bogg.Direction.Off);
         }
-        else if(!robot.sensors.touchTopIsPressed())
+        else if(timer.seconds() < 8)
         {
-            robot.lift(.2); //push up, which drops the robot
+            robot.lift(1); //push up, which drops the robot
         }
-        else if(robot.sensors.touchTopIsPressed()){
+        else{
             timer.reset();
             robot.lift(0); //Turns motor off
-            robot.driveEngine.trueX = -4;
+            robot.driveEngine.trueX = -3;
             robot.driveEngine.trueY = 0;
             return Mode.LookForMinerals;
         }
@@ -124,7 +126,7 @@ public class Auto {
     Mode slide1()
     {
         if (robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
-                new double[]{0, 0}))
+                new double[]{0, 1}))
         {
             return Mode.PushGold;
         }
@@ -174,6 +176,17 @@ public class Auto {
         return Mode.Slide2;
     }
 
+    Mode slide2OneStep()
+    {
+        telemetry.addData("time", getTime());
+        if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
+                new double[]{-38, 25, Math.PI / 4}))
+        {
+                return Mode.TurnByCamera;
+        }
+        return Mode.Slide2;
+    }
+
 
 //    If you are standing in the Red Alliance Station looking towards the center of the field,
 //    The X axis runs from your left to the right. (positive from the center to the right)
@@ -185,6 +198,8 @@ public class Auto {
     {
         if(robot.name == Bogg.Name.Fakebot)
             return Mode.MoveToDepot;
+
+        robot.driveEngine.drive(robot.driveEngine.faceForward());
 
         double[] location = camera.getLocation();
         if(location != null)
@@ -209,6 +224,16 @@ public class Auto {
         return Mode.MoveToDepot;
     }
 
+    Mode moveToDepotOneStep()
+    {
+        if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute, false,
+                new double[]{-6, 5*17, iSP * Math.PI/2})) {
+            timer.reset();
+            return Mode.DropMarker;
+        }
+        return Mode.MoveToDepot;
+    }
+
 
     Mode dropMarker()
     {
@@ -222,6 +247,16 @@ public class Auto {
         return Mode.DropMarker;
     }
 
+    Mode dropMarkerPure()
+    {
+        robot.dropMarker(Bogg.Direction.Down);
+        if(getTime() > .5) {
+            robot.driveEngine.resetDistances();
+            return Mode.MoveToCrater;
+        }
+        return Mode.DropMarker;
+    }
+
 
     Mode moveToCrater()
     {
@@ -231,10 +266,10 @@ public class Auto {
         telemetry.addData("usingImu", robot.sensors.usingImu);
 
         if(robot.sensors.usingImu) {
-            if (robot.sensors.isTilted() || robot.driveEngine.yDist() < -12 * 10)
+            if (robot.sensors.isTilted() || robot.driveEngine.yDist() < -12 * 9)
                 return Mode.Stop;
         }
-        else if (robot.driveEngine.yDist() < -12 * 10)
+        else if (robot.driveEngine.yDist() < -12 * 9)
         {
             return Mode.Stop;
         }
