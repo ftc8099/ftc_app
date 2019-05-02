@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -85,7 +84,6 @@ public class Auto {
 
     Mode actuallyDrop()
     {
-        robot.lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         if(!movingBreak)
         {
             timer.reset();
@@ -99,14 +97,14 @@ public class Auto {
         {
             robot.setBrake(Bogg.Direction.Off);
         }
-        else if(timer.seconds() < 8)
+        else if(!robot.sensors.touchTopIsPressed())
         {
-            robot.lift(1); //push up, which drops the robot
+            robot.lift(.2); //push up, which drops the robot
         }
-        else{
+        else if(robot.sensors.touchTopIsPressed()){
             timer.reset();
             robot.lift(0); //Turns motor off
-            robot.driveEngine.trueX = -3;
+            robot.driveEngine.trueX = -4;
             robot.driveEngine.trueY = 0;
             return Mode.LookForMinerals;
         }
@@ -126,7 +124,7 @@ public class Auto {
     Mode slide1()
     {
         if (robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
-                new double[]{0, 1}))
+                new double[]{0, 0}))
         {
             return Mode.PushGold;
         }
@@ -166,7 +164,6 @@ public class Auto {
 
     Mode slide2()
     {
-<<<<<<< HEAD
         telemetry.addData("time", getTime());
         if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
                 new double[]{-38, 25},
@@ -174,43 +171,13 @@ public class Auto {
         {
             return Mode.TurnByCamera;
         }
-=======
-        double[] location = camera.getLocation();
-        if(location != null) {
-            setiSP(location);
-            robot.driveEngine.checkpoints.clear();
-            return Mode.MoveToDepot;
-        }
-
-        if (robot.driveEngine.moveOnPath("slide2 Y",
-                new double[]{0, slide2Y}))
-            if(robot.driveEngine.moveOnPath("slide2 X and Turn",
-                    DriveEngine.Positioning.Absolute,false,
-                    new double[]{-33, 28},
-                    new double[]{Math.PI / 4}))
-            {
-                robot.driveEngine.stop();
-            }
->>>>>>> alternate-smoothing-branch
         return Mode.Slide2;
     }
 
-<<<<<<< HEAD
     void setiSP(double[] location)
     {
         double max = Math.max(Math.abs(location[0]), Math.abs(location[1]));
         iSP = max == Math.abs(location[1])? 1 : -1;
-=======
-    Mode slide2OneStep()
-    {
-        telemetry.addData("time", getTime());
-        if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
-                new double[]{-38, 25, Math.PI / 4}))
-        {
-                return Mode.TurnByCamera;
-        }
-        return Mode.Slide2;
->>>>>>> f6d25de99d4c34681c84a89e562aa08f6a6f862b
     }
 
 
@@ -224,8 +191,6 @@ public class Auto {
     {
         if(robot.name == Bogg.Name.Fakebot)
             return Mode.MoveToDepot;
-
-        robot.driveEngine.drive(robot.driveEngine.faceForward());
 
         double[] location = camera.getLocation();
         if(location != null)
@@ -250,16 +215,6 @@ public class Auto {
         return Mode.MoveToDepot;
     }
 
-    Mode moveToDepotOneStep()
-    {
-        if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute, false,
-                new double[]{-6, 5*17, iSP * Math.PI/2})) {
-            timer.reset();
-            return Mode.DropMarker;
-        }
-        return Mode.MoveToDepot;
-    }
-
 
     Mode dropMarker()
     {
@@ -273,16 +228,6 @@ public class Auto {
         return Mode.DropMarker;
     }
 
-    Mode dropMarkerPure()
-    {
-        robot.dropMarker(Bogg.Direction.Down);
-        if(getTime() > .5) {
-            robot.driveEngine.resetDistances();
-            return Mode.MoveToCrater;
-        }
-        return Mode.DropMarker;
-    }
-
 
     Mode moveToCrater()
     {
@@ -291,10 +236,10 @@ public class Auto {
         telemetry.addData("usingImu", robot.sensors.usingImu);
 
         if(robot.sensors.usingImu) {
-            if (robot.sensors.isTilted() || robot.driveEngine.yDist() < -12 * 9)
+            if (robot.sensors.isTilted() || robot.driveEngine.yDist() < -12 * 10)
                 return Mode.Stop;
         }
-        else if (robot.driveEngine.yDist() < -12 * 9)
+        else if (robot.driveEngine.yDist() < -12 * 10)
         {
             return Mode.Stop;
         }

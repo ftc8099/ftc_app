@@ -325,13 +325,6 @@ abstract class DriveEngine {
     boolean moveOnPath(double[] ... args){
         return moveOnPath(Positioning.Relative, false, args);
     }
-<<<<<<< HEAD
-
-    boolean moveOnPath(String key, Positioning positioning, double[] ... args){
-        if(keyList.contains(key))
-            return true;
-        if(moveOnPath(positioning, false, args)){
-=======
     boolean moveOnPath(String key, double[] ... args){
         return moveOnPath(key, Positioning.Relative, false, args);
     }
@@ -340,7 +333,6 @@ abstract class DriveEngine {
         if(keyList.contains(key))
             return true;
         if(moveOnPath(positioning, continuous, args)){
->>>>>>> alternate-smoothing-branch
             keyList.add(key);
             return true;
         }
@@ -437,32 +429,13 @@ abstract class DriveEngine {
 
                 double[] drive = move(deltaX, deltaY);
 
-<<<<<<< HEAD
-                //smooth the driving when revving to a high speed, then reset the average to 0.
-                if(Math.hypot(drive[0],drive[1]) > .3)
-                    drive = smoothDrive(drive[0], drive[1], .25);
-                if(Math.hypot(drive[0],drive[1]) < .1)
-                    smoothDrive(0,0, .25);
-=======
 
->>>>>>> alternate-smoothing-branch
 
                 double driveX = drive[0];
                 double driveY = drive[1];
 
-<<<<<<< HEAD
-                if(r <= 1.25 || Math.hypot(driveX, driveY) == 0) { //happens when theta changes rapidly
-                    if(continuous && c == checkpoints.size() - 1) {
-                        drive(100, false, driveX, driveY, spin);
-//                        drive(driveX, driveY, spin);
-                        drdtArray = new ArrayList<>();
-                        dThdtArray = new ArrayList<>();
-                    }
-                    else {
-=======
                 if(r <= .75 || Math.hypot(driveX, driveY) == 0 //happens when theta changes rapidly
                     && !(continuous && c == checkpoints.size() - 1 )){ //Don't move on if continuous
->>>>>>> alternate-smoothing-branch
                         stop();
                         if(args[c].length == 3) {
                             forward += args[c][2];
@@ -484,12 +457,6 @@ abstract class DriveEngine {
                     else
                         drive(drive[0], drive[1], spin);
                 }
-<<<<<<< HEAD
-                else
-                    drive(100, false, driveX, driveY, spin);
-//                    drive(driveX, driveY, spin);
-=======
->>>>>>> alternate-smoothing-branch
                 justResetTarget = false;
                 break;
         }
@@ -508,7 +475,7 @@ abstract class DriveEngine {
 
     double sP = .16; // .16 per radian
     double sI = 8; //Time to correct past error
-    double sD = 0; //fully account for this much time in the future at current error decreasing rate
+    double sD = .7; //fully account for this much time in the future at current error decreasing rate
 
     /**
      * This method uses PID control to rotate the robot to a certain angle,
@@ -548,7 +515,7 @@ abstract class DriveEngine {
 
         lastSpinError = e;
         lastSpinTime = t;
-        return Range.clip(power, -.15, .15);
+        return power;
     }
     void resetForward()
     {
@@ -561,7 +528,7 @@ abstract class DriveEngine {
     private double lastTheta = 0;
     private double lastT = 0;
     double mP = .02; //power per inch
-    double mD = 0;  //fully account for this much time in the future at current error decreasing rate
+    double mD = 0.5;  //fully account for this much time in the future at current error decreasing rate
     double tD = 0.08;
 
     private ArrayList<Double> drdtArray = new ArrayList<>();
@@ -629,7 +596,7 @@ abstract class DriveEngine {
                             Math.sin(theta) * power + Math.cos(theta) * tangentPower};
     }
 
-    
+
 
     abstract void orbit(double radius, double angle, double speed);
 
