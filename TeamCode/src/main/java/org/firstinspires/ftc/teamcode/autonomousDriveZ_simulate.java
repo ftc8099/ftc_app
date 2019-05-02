@@ -38,7 +38,7 @@ public class autonomousDriveZ_simulate extends LinearOpMode
                 case Slide2:
                     action = auto.slide2();
                     break;
-                case TurnByCamera:
+                case WaitToDetectPicture:
                 case MoveToDepot:
                     action = auto.moveToDepot();
                     break;

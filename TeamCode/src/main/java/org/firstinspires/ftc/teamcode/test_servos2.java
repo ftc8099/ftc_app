@@ -20,7 +20,7 @@ public class test_servos2 extends LinearOpMode
     public void runOpMode()
     {
         robot = Bogg.determineRobot(hardwareMap, telemetry);
-        robot.driveEngine.driveAtAngle(Math.PI);
+        robot.driveEngine.setInitialAngle(Math.PI);
         g1 = gamepad1;
 
         waitForStart();

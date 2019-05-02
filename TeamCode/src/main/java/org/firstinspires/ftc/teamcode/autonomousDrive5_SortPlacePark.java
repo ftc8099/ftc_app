@@ -45,9 +45,14 @@ public class autonomousDrive5_SortPlacePark extends LinearOpMode
                 case Slide2:
                     action = auto.slide2();
                     break;
+<<<<<<< HEAD
 
                 case TurnByCamera:
                     action = auto.turnByCamera();
+=======
+                case WaitToDetectPicture:
+                    action = auto.waitToDetectPicture();
+>>>>>>> alternate-smoothing-branch
                     break;
 
                 case MoveToDepot:

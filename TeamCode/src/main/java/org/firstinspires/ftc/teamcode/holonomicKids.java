@@ -19,11 +19,7 @@ public class holonomicKids extends LinearOpMode
 
         while (opModeIsActive())
         {
-
-            if(!robot.manualRotate(false, g1.right_stick_x))
-            {
-                robot.manualDrive(g1.left_stick_button, g1.left_stick_x, g1.left_stick_y);
-            }
+            robot.manualDrive(g1.left_stick_button, g1.left_stick_x, g1.left_stick_y, g1.right_stick_x);
 
             // Display the current value
 

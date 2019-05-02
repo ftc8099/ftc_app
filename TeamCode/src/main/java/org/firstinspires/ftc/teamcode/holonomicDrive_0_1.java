@@ -15,16 +15,13 @@ public class holonomicDrive_0_1 extends LinearOpMode
     public void runOpMode()
     {
         robot = Bogg.determineRobot(hardwareMap, telemetry);
-        robot.driveEngine.driveAtAngle(Math.PI);
+        robot.driveEngine.setInitialAngle(Math.PI);
         g1 = gamepad1;
         waitForStart();
 
         while (opModeIsActive())
         {
-            if(!robot.manualRotate(g1.right_stick_button, g1.right_stick_x)) //if we're not rotating
-            {
-                robot.manualDrive(g1.left_stick_button, g1.left_stick_x, g1.left_stick_y);
-            }
+            robot.manualDrive(g1.left_stick_button, g1.left_stick_x, g1.left_stick_y,g1.right_stick_x);
 
             if(g1.dpad_down)
                 robot.setBrake(Bogg.Direction.On);

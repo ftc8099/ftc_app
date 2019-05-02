@@ -17,7 +17,6 @@ public class holonomicDrive_0_2 extends LinearOpMode
 
     private boolean autoOverride = false;
 
-    double driveAngle = Math.PI, initialAngle = Math.PI;
 
     @Override
     public void runOpMode()
@@ -67,17 +66,16 @@ public class holonomicDrive_0_2 extends LinearOpMode
 
             //Drive angle
             if(g1.x)
-                driveAngle = initialAngle + robot.driveEngine.spinAngle();
+                robot.driveEngine.resetFieldHeadingToRobotHeading();
 
 
             //Arm and drive manual
-            robot.manualDrive2(
+            robot.manualDriveFixedForwardAutoCorrect(
                     g1.left_stick_button,
                     g1.left_stick_x,
                     g1.left_stick_y,
                     g1.right_stick_x);
 
-            robot.driveEngine.driveAtAngle(MyMath.loopAngle(driveAngle, robot.driveEngine.spinAngle()));
 
             //if the moveOnPaths have finished
             robot.driveEngine.checkpoints.clear();

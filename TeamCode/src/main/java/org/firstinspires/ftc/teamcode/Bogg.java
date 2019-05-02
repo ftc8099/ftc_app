@@ -68,7 +68,7 @@ public class Bogg
                 break;
 
             case Fauxbot:
-                driveEngine.driveAtAngle(-Math.PI / 2);
+                driveEngine.setInitialAngle(-Math.PI / 2);
                 break;
 
             case Fakebot:
@@ -203,31 +203,18 @@ public class Bogg
         }
     }
 
-    void manualDrive(boolean op, double x, double y)
+    void manualDrive(boolean op, double x, double y, double spin)
     {
-        double[] drive = driveEngine.smoothDrive(x, -y, op? 1:3);
-        double leftX = drive[0];
-        double leftY = drive[1];
-
         telemetry.addData("gamepad x", x);
         telemetry.addData("gamepad y", y);
-        telemetry.addLine("Note: y is negated");
+        telemetry.addData("gamepad spin", spin);
+        telemetry.addLine("Note: y and spin are negated");
 
-        driveEngine.drive(op, leftX, leftY);
+        driveEngine.drive(op, x, -y, -spin);
     }
 
     ElapsedTime spinTimer = new ElapsedTime();
 
-    /**
-     * The default precedence is 0.
-     * @param op: Determines if 
-     * @param x: Power in the x direction
-     * @param y: Power in the y direction
-     * @param spin: Power towards rotation
-     */
-    void manualDrive2(boolean op, double x, double y, double spin){
-        manualDrive2(op,x,y,spin,0);
-    }
 
     /**
      *
@@ -235,99 +222,39 @@ public class Bogg
      * @param x: Power in the x direction
      * @param y: Power in the y direction
      * @param spin: Power towards rotation
-     * @param precedence
      */
-    void manualDrive2(boolean op, double x, double y, double spin, int precedence)
+    void manualDriveFixedForwardAutoCorrect(boolean op, double x, double y, double spin)
+    {
+        manualDriveAutoCorrect(op, x, y, spin);
+
+        driveEngine.orientRobotDirectionToField();
+
+        telemetry.addData("gamepad x", x);
+        telemetry.addData("gamepad y", y);
+        telemetry.addData("gamepad spin", spin);
+        telemetry.addLine("Note: y and spin are negated");
+    }
+
+
+    void manualDriveAutoCorrect(boolean op, double x, double y, double spin)
     {
         if(spin != 0)
             spinTimer.reset();
-        boolean smoothSpin = true;
-        if(spinTimer.seconds() < 1)
+        if(spinTimer.seconds() < 1) {
             driveEngine.resetForward();
+            driveEngine.drive(0, op? 1:2.5, op,true,true,
+                    x, -y, -spin);
+        }
         else {
-            spin = -driveEngine.faceForward();
-            smoothSpin = false;
+            driveEngine.drive(0, op? 1:2.5, op,true,false,
+                    x, -y, driveEngine.angularVelocityNeededToFaceForward());
         }
-        driveEngine.smoothDrive2(op, x, -y, -spin, op? 1:2.5, smoothSpin, true, precedence);
+
 
         telemetry.addData("gamepad x", x);
         telemetry.addData("gamepad y", y);
         telemetry.addData("gamepad spin", spin);
         telemetry.addLine("Note: y and spin are negated");
-    }
-
-    void manualDriveAutoCorrect(boolean op, double x, double y, double t)
-    {
-        if(t < 1){
-            driveEngine.resetForward();
-            manualDrive(op, x, y);
-        }
-
-        double[] drive = driveEngine.smoothDrive(x, -y, op? 1:3);
-        double leftX = drive[0];
-        double leftY = drive[1];
-        double spin = driveEngine.faceForward();
-        driveEngine.drive(op, leftX, leftY, spin);
-
-        telemetry.addData("gamepad x", x);
-        telemetry.addData("gamepad y", y);
-        telemetry.addLine("Note: y is negated");
-    }
-
-    void manualCurvy(boolean op, double x, double y, double s)
-    {
-        double[] drive = driveEngine.smoothDrive(x, -y, op? 1:3);
-        double leftX = drive[0];
-        double leftY = drive[1];
-        double spin = driveEngine.smoothSpin(-s/3);
-
-        telemetry.addData("gamepad x", x);
-        telemetry.addData("gamepad y", y);
-        telemetry.addData("gamepad spin", s);
-        telemetry.addLine("Note: y and spin are negated");
-
-        driveEngine.drive(op, leftX, leftY, spin);
-    }
-
-    boolean manualRotate(boolean button, double spin)
-    {
-        if(spin == 0) {  //if we're not rotating
-            if(rotating){  //but if the boolean says we are
-                rotating = false;
-                driveEngine.resetForward(); //resets forward after rotating so we can auto-correct
-            }
-            return false;
-        }
-        rotating = true;
-
-        if(button)
-            driveEngine.rotate(-spin/3);
-        else
-            driveEngine.rotate(driveEngine.smoothSpin(-spin/3));
-
-        telemetry.addData("gamepad spin", spin);
-        telemetry.addLine("Note: spin is negated");
-        return true;
-    }
-
-    private double derivedRadius = 12;
-    void updateRadius()
-    {
-        derivedRadius = endEffector.getRadius();
-    }
-
-    void manualDriveVarOrbit(boolean op, double y, double x, double spin, boolean orbit)
-    {
-        double max = Math.max(Math.abs(x), Math.abs(y));
-
-        if(orbit) {
-            if (max == Math.abs(y))
-                driveEngine.orbit(derivedRadius + driveEngine.xDist(), 0, y / 2);
-            else
-                driveEngine.drive(x, 0);
-        }
-        else
-            manualCurvy(op, x, y, spin);
     }
 
     void floatMotors()
@@ -342,26 +269,22 @@ public class Bogg
     }
 
 
-    double n = 0;
-    double lastTime = 0;
+    private double lastTime = 0;
     /**
      * Should only be called once per loop
-     * @return the average time for one loop
+     * Updates the average time for one loop
+     * Updates the driveEngine and telemetry
      */
     void update()
     {
         double t = timer.seconds();
         double clockTime = t - lastTime;
         lastTime = t;
-
-        if(n==0){
-            n++;
+        if(clockTime == 0)
             return;
-        }
 
-        averageClockTime = (clockTime * .02 + averageClockTime * .98); //expontential average
+        averageClockTime = (clockTime * .02 + averageClockTime * .98); //exponential average
 
-        n++;
         driveEngine.update();
         telemetry.update();
         telemetry.addData("currentClockTime", clockTime);
@@ -370,6 +293,8 @@ public class Bogg
 
     static double getAlpha(double seconds)
     {
+        if(seconds == 0)
+            return 1;
         return 1 - Math.pow(.05, averageClockTime/seconds); //reaches 95% in this many seconds
     }
 }

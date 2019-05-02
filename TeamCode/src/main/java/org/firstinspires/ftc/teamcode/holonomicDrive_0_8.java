@@ -35,7 +35,7 @@ public class holonomicDrive_0_8 extends LinearOpMode
                 robot.driveEngine.drive(values);
             }
             else {
-                robot.manualDrive2(g1.left_stick_button, g1.left_stick_x, g1.left_stick_y, g1.right_stick_x);
+                robot.manualDrive(g1.left_stick_button, g1.left_stick_x, g1.left_stick_y, g1.right_stick_x);
                 blackBox.add(robot.driveEngine.blackValues);
             }
 

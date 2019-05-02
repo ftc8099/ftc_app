@@ -20,7 +20,7 @@ public class fauxbotDrive extends LinearOpMode {
         waitForStart();
         while (opModeIsActive()) {
 
-            robot.manualCurvy(g1.left_stick_button, g1.left_stick_x, g1.left_stick_y, g1.right_stick_x);
+            robot.manualDrive(g1.left_stick_button, g1.left_stick_x, g1.left_stick_y, g1.right_stick_x);
 
             telemetry.update();
             idle();

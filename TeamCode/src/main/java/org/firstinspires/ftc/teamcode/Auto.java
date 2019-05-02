@@ -17,7 +17,7 @@ public class Auto {
     Auto(HardwareMap hardwareMap, Telemetry telemetry)
     {
         this.robot = Bogg.determineRobot(hardwareMap, telemetry);
-        robot.driveEngine.driveAtAngle(0);
+        robot.driveEngine.setInitialAngle(0);
         this.telemetry = telemetry;
         camera = new Camera(hardwareMap, telemetry, false, true);
         telemetry.addLine("Camera Loaded");
@@ -36,7 +36,7 @@ public class Auto {
         LookForMinerals,
         PushGold,
         Slide2,
-        TurnByCamera,
+        WaitToDetectPicture,
         MoveToDepot,
         DropMarker,
         MoveToCrater,
@@ -164,6 +164,7 @@ public class Auto {
 
     Mode slide2()
     {
+<<<<<<< HEAD
         telemetry.addData("time", getTime());
         if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
                 new double[]{-38, 25},
@@ -171,7 +172,31 @@ public class Auto {
         {
             return Mode.TurnByCamera;
         }
+=======
+        double[] location = camera.getLocation();
+        if(location != null) {
+            setiSP(location);
+            robot.driveEngine.checkpoints.clear();
+            return Mode.MoveToDepot;
+        }
+
+        if (robot.driveEngine.moveOnPath("slide2 Y",
+                new double[]{0, slide2Y}))
+            if(robot.driveEngine.moveOnPath("slide2 X and Turn",
+                    DriveEngine.Positioning.Absolute,false,
+                    new double[]{-33, 28},
+                    new double[]{Math.PI / 4}))
+            {
+                robot.driveEngine.stop();
+            }
+>>>>>>> alternate-smoothing-branch
         return Mode.Slide2;
+    }
+
+    void setiSP(double[] location)
+    {
+        double max = Math.max(Math.abs(location[0]), Math.abs(location[1]));
+        iSP = max == Math.abs(location[1])? 1 : -1;
     }
 
 
@@ -181,7 +206,7 @@ public class Auto {
 //    where the Blue Alliance Station is. (Positive is from the center, towards the BlueAlliance station)
 //    The Z axis runs from the floor, upwards towards the ceiling.  (Positive is above the floor)
 
-    Mode turnByCamera()
+    Mode waitToDetectPicture()
     {
         if(robot.name == Bogg.Name.Fakebot)
             return Mode.MoveToDepot;
@@ -194,7 +219,7 @@ public class Auto {
             return Mode.MoveToDepot;
 
         }
-        return Mode.TurnByCamera;
+        return Mode.WaitToDetectPicture;
     }
 
 
@@ -225,8 +250,7 @@ public class Auto {
 
     Mode moveToCrater()
     {
-        double[] drive = robot.driveEngine.smoothDrive(0, -1, 2);
-        robot.driveEngine.drive(drive[0], drive[1]);
+        robot.driveEngine.drive(0,2,true, 0,1);
         telemetry.addData("yDist", robot.driveEngine.yDist());
         telemetry.addData("usingImu", robot.sensors.usingImu);
 

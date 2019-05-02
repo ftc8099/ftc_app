@@ -35,6 +35,7 @@ public class autonomousDrive4_DropPlacePark extends LinearOpMode
                 case Slide2:
                     action = auto.slide2();
                     break;
+<<<<<<< HEAD
 //                case TurnByCamera:
 //                    action = auto.turnByCamera();
 //                    break;
@@ -47,6 +48,20 @@ public class autonomousDrive4_DropPlacePark extends LinearOpMode
 //                case MoveToCrater:
 //                    action = auto.moveToCrater();
 //                    break;
+=======
+                case WaitToDetectPicture:
+                    action = auto.waitToDetectPicture();
+                    break;
+                case MoveToDepot:
+                    action = auto.moveToDepot();
+                    break;
+                case DropMarker:
+                    action = auto.dropMarker();
+                    break;
+                case MoveToCrater:
+                    action = auto.moveToCrater();
+                    break;
+>>>>>>> alternate-smoothing-branch
                 default:
                     action = auto.stop();
             }
