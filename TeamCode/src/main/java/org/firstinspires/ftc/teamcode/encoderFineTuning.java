@@ -49,6 +49,9 @@ public class encoderFineTuning extends LinearOpMode
             telemetry.addData("P", robot.driveEngine.mP);
             telemetry.addData("D", robot.driveEngine.mD);
 
+            telemetry.addData("sP", robot.driveEngine.sP);
+            telemetry.addData("sD", robot.driveEngine.sD);
+
             robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute, true,
                     new double[]{deltaX, deltaY, deltaS});
 
@@ -56,20 +59,20 @@ public class encoderFineTuning extends LinearOpMode
 
             if(gamepad1.dpad_right)
             {
-                robot.driveEngine.mP += .01 * Bogg.averageClockTime;
+                robot.driveEngine.sP += .01 * Bogg.averageClockTime;
             }
             else if(gamepad1.dpad_left)
             {
-                robot.driveEngine.mP -= .01 * Bogg.averageClockTime;
+                robot.driveEngine.sP -= .01 * Bogg.averageClockTime;
             }
 
             if(gamepad1.b)
             {
-                robot.driveEngine.mD += .2 * Bogg.averageClockTime;
+                robot.driveEngine.sD += .2 * Bogg.averageClockTime;
             }
             else if(gamepad1.x)
             {
-                robot.driveEngine.mD -= .2 * Bogg.averageClockTime;
+                robot.driveEngine.sD -= .2 * Bogg.averageClockTime;
             }
 
             if(gamepad1.left_stick_button || gamepad1.right_stick_button)
