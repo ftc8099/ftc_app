@@ -42,7 +42,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefau
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
-import com.vuforia.CameraDevice;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -506,7 +505,7 @@ public class Camera{
             List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
             if (updatedRecognitions != null) {
                 telemetry.addData("# Object Detected", updatedRecognitions.size());
-                if (updatedRecognitions.size() >= 2) {
+                if (updatedRecognitions.size() >= 1) {
                     int goldMineralX = -1, silverMineral1X = -1, silverMineral2X = -1;
 
                     for (Recognition recognition : updatedRecognitions) {
@@ -548,7 +547,17 @@ public class Camera{
                                 return 1;
                         }
                     }
+                    else if(goldMineralX != -1)
+                    {
+                        if(goldMineralX < q1Length)
+                            return 0;
+                        else if(goldMineralX > q3Length)
+                            return 2;
+                        else
+                            return 1;
+                    }
                 }
+
             }
         }
         switch (goldPosition)

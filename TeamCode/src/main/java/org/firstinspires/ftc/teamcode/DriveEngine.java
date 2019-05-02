@@ -508,7 +508,7 @@ abstract class DriveEngine {
 
     double sP = .16; // .16 per radian
     double sI = 8; //Time to correct past error
-    double sD = .7; //fully account for this much time in the future at current error decreasing rate
+    double sD = 0; //fully account for this much time in the future at current error decreasing rate
 
     /**
      * This method uses PID control to rotate the robot to a certain angle,
@@ -548,7 +548,7 @@ abstract class DriveEngine {
 
         lastSpinError = e;
         lastSpinTime = t;
-        return power;
+        return Range.clip(power, -.15, .15);
     }
     void resetForward()
     {
@@ -561,7 +561,7 @@ abstract class DriveEngine {
     private double lastTheta = 0;
     private double lastT = 0;
     double mP = .02; //power per inch
-    double mD = 0.5;  //fully account for this much time in the future at current error decreasing rate
+    double mD = 0;  //fully account for this much time in the future at current error decreasing rate
     double tD = 0.08;
 
     private ArrayList<Double> drdtArray = new ArrayList<>();

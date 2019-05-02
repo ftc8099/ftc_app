@@ -3,13 +3,13 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-@Autonomous(name="Start on Lander Competition", group = "Testing")
-public class autonomousDrive1_Drop extends LinearOpMode
+@Autonomous(name="Lander Fast Competition", group = "Competition")
+public class autonomousDrive6_SortPlaceParkFast extends LinearOpMode
 {
-    private Auto auto;
-    private Auto.Mode action;
+    Auto auto;
+    Auto.Mode action;
 
-
+    @Override
     public void runOpMode()
     {
         auto = new Auto(hardwareMap, telemetry);
@@ -27,7 +27,7 @@ public class autonomousDrive1_Drop extends LinearOpMode
                     action = auto.actuallyDrop();
                     break;
 
-                //Can't reliably see all minerals after slide...
+                    //Can't reliably see all minerals after slide...
                 case LookForMinerals:
                     if(auto.camera.canUseTFOD) {
                         action = auto.lookForMinerals();
@@ -43,7 +43,7 @@ public class autonomousDrive1_Drop extends LinearOpMode
                     break;
 
                 case Slide2:
-                    action = auto.slide2();
+                    action = auto.slide2OneStep();
                     break;
 
                 case TurnByCamera:
@@ -51,16 +51,16 @@ public class autonomousDrive1_Drop extends LinearOpMode
                     break;
 
                 case MoveToDepot:
-                    action = auto.moveToDepot();
+                    action = auto.moveToDepotOneStep();
                     break;
 
                 case DropMarker:
-                    action = auto.dropMarker();
+                    action = auto.dropMarkerPure();
                     break;
-//
-//                case MoveToCrater:
-//                    action = auto.moveToCrater();
-//                    break;
+
+                case MoveToCrater:
+                    action = auto.moveToCrater();
+                    break;
                 default:
                     action = auto.stop();
             }
