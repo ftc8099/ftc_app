@@ -4,6 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
+/**
+ * This class is the same as holo1, but with only a driveEngine, no servos.
+ */
 @TeleOp(name="holonomicKids", group="Testing")
 public class holonomicKids extends LinearOpMode
 {

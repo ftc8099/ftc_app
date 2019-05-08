@@ -3,6 +3,11 @@ package org.firstinspires.ftc.teamcode;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/**
+ * This class has useful math functions not included in the basic Math class.
+ * Using these methods makes code more readable, and putting the methods in a separate class
+ * prevents duplication.
+ */
 public class MyMath {
 
     static double median(ArrayList<Double> values)
@@ -41,8 +46,8 @@ public class MyMath {
 
 
     /**
-     * @param target angle
-     * @param current angle
+     * @param target angle in radians
+     * @param current angle in radians
      * @return the smallest signed difference between the two angles
      */
     static double loopAngle(Number target, Number current)
@@ -53,6 +58,12 @@ public class MyMath {
         return d;
     }
 
+    /**
+     * This method returns an equivalent angle to the average, but it does not guarantee
+     * that angle will be inside a range. This does not affect trig functions, which are periodic.
+     * @param angles: an ArrayList of angles in radians.
+     * @return the average of several angles
+     */
     static double loopAve(ArrayList<? extends Number> angles)
     {
         double thetaAve = 0;
@@ -62,6 +73,11 @@ public class MyMath {
         return thetaAve;
     }
 
+    /**
+     * Finds the largest number (farthest from negative infinity) out of the given doubles
+     * @param numbers: doubles separated by commas
+     * @return the largest number
+     */
     static double max(double... numbers)
     {
         double max = Double.NEGATIVE_INFINITY;
@@ -72,6 +88,11 @@ public class MyMath {
         return max;
     }
 
+    /**
+     * Finds the smallest number (farthest from positive infinity) out of the given doubles
+     * @param numbers: doubles separated by commas
+     * @return the smallest number
+     */
     static double min(double... numbers)
     {
         double min = Double.POSITIVE_INFINITY;

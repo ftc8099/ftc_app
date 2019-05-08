@@ -98,7 +98,13 @@ public class Bogg
         }
     }
 
-    public static Bogg determineRobot(HardwareMap hardwareMap, Telemetry telemetry)
+    /**
+     * Returns the appropriate Bogg based on the hardware map.
+     * Allows any program to be used on any robot, or no robot at all.
+     * No robot will return a Fakebot with a FakeDriveEngine.
+     * @return the Bogg you are looking for
+     */
+    static Bogg determineRobot(HardwareMap hardwareMap, Telemetry telemetry)
     {
         Bogg robot;
         try {
@@ -122,6 +128,11 @@ public class Bogg
     }
 
 
+    /**
+     * This method finds an equilibrium lifting point using an exponential average
+     * @param l: How much to lift
+     * @return: The smoothed lifting value
+     */
     private double smoothLift(double l)
     {
         double liftAlpha = .12;
@@ -137,6 +148,7 @@ public class Bogg
     }
 
     /**
+     * This method finds an equilibrium point based on limit sensor data and smoothing
      * @param up is whether the up button is pushed
      * @param down is whether the down button is pushed
      * @return if pulling arm down
@@ -165,6 +177,10 @@ public class Bogg
         return false;
     }
 
+    /**
+     * Assigns power to the lift motor based on limit sensor data
+     * @param power to run the lift at
+     */
     void lift(double power)
     {
         if(name == Name.Bogg)
@@ -176,7 +192,11 @@ public class Bogg
             lift.setPower(smoothLift(0));
     }
 
-    void setBrake(Direction d)
+    /**
+     * Sets the brake
+     * @param direction to set the brake
+     */
+    void setBrake(Direction direction)
     {
         if(name == Name.Bogg)
         switch (d) {
@@ -188,6 +208,10 @@ public class Bogg
         }
     }
 
+    /**
+     * Sets the marker-dropper position
+     * @param direction to move the marker-dropper
+     */
     void dropMarker(Direction direction)
     {
         if(name == Name.Bogg)
@@ -203,12 +227,21 @@ public class Bogg
         }
     }
 
+    /**
+     * This method enables pretty direct control over the robot, no frills.
+     * @param op: Overpowered maxes at least one motor when you press the joystick far enough.
+     * @param x: Velocity in the x direction
+     * @param y: Velocity in the y direction
+     * @param spin: Rotational velocity
+     */
     void manualDrive(boolean op, double x, double y, double spin)
     {
         telemetry.addData("gamepad x", x);
         telemetry.addData("gamepad y", y);
         telemetry.addData("gamepad spin", spin);
         telemetry.addLine("Note: y and spin are negated");
+        //The gamepad naturally gives negative y values.
+        //Spin is naturally counterclockwise, but negating it is easier for people to control.
 
         driveEngine.drive(op, x, -y, -spin);
     }
@@ -217,11 +250,14 @@ public class Bogg
 
 
     /**
-     *
-     * @param op:
-     * @param x: Power in the x direction
-     * @param y: Power in the y direction
-     * @param spin: Power towards rotation
+     * This method automatically corrects for incidental rotation.
+     * It also orients the gamepad direction to the field.
+     * Note: in order to reset the field heading, you will need to call
+     *      driveEngine.resetFieldHeadingToRobotHeading()
+     * @param op: Overpowered maxes at least one motor when you press the joystick far enough.
+     * @param x: Velocity in the x direction
+     * @param y: Velocity in the y direction
+     * @param spin: Rotational velocity
      */
     void manualDriveFixedForwardAutoCorrect(boolean op, double x, double y, double spin)
     {
@@ -236,8 +272,16 @@ public class Bogg
     }
 
 
+    /**
+     *This method automatically corrects for incidental rotation.
+     * @param op: Overpowered maxes at least one motor when you press the joystick far enough.
+     * @param x: Velocity in the x direction
+     * @param y: Velocity in the y direction
+     * @param spin: Rotational velocity
+     */
     void manualDriveAutoCorrect(boolean op, double x, double y, double spin)
     {
+        //While spinning, no autocorrection
         if(spin != 0)
             spinTimer.reset();
         if(spinTimer.seconds() < 1) {
@@ -245,6 +289,7 @@ public class Bogg
             driveEngine.drive(0, op? 1:2.5, op,true,true,
                     x, -y, -spin);
         }
+        //After a second for the sensor to get up to date, we start to correct for rotation.
         else {
             driveEngine.drive(0, op? 1:2.5, op,true,false,
                     x, -y, driveEngine.angularVelocityNeededToFaceForward());
@@ -257,6 +302,10 @@ public class Bogg
         telemetry.addLine("Note: y and spin are negated");
     }
 
+    /**
+     * There's some kind of internal brake on the motors.
+     * This method releases that brake on motors that the robot controls.
+     */
     void floatMotors()
     {
         driveEngine.floatMotors();
@@ -273,24 +322,30 @@ public class Bogg
     /**
      * Should only be called once per loop
      * Updates the average time for one loop
-     * Updates the driveEngine and telemetry
+     * Updates the driveEngine, telemetry, and sensors.
      */
     void update()
     {
         double t = timer.seconds();
         double clockTime = t - lastTime;
         lastTime = t;
-        if(clockTime == 0)
+        if(clockTime == t) //Ensures that the first time through doesn't affect the average.
             return;
 
         averageClockTime = (clockTime * .02 + averageClockTime * .98); //exponential average
+        //The average is needed because the clocktime can change over time.
 
         driveEngine.update();
+        sensors.update();
         telemetry.update();
         telemetry.addData("currentClockTime", clockTime);
         telemetry.addData("averageClockTime", averageClockTime);
     }
 
+    /**
+     * @param seconds: number of seconds to reach 95% of target value
+     * @return the alpha value to use in an exponential averaging system.
+     */
     static double getAlpha(double seconds)
     {
         if(seconds == 0)
