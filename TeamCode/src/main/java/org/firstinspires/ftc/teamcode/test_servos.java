@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.Range;
 
 @TeleOp(name="test servos", group="Testing")
 public class test_servos extends LinearOpMode
@@ -11,54 +13,52 @@ public class test_servos extends LinearOpMode
 
     Gamepad g1;
 
-    double pinch = .44;
-    double swing = 0.25;
-    double drop = 0;
-    double brake = .55;
+    //Servos go from 0 to 1.
+    //Seconds to go from one side to the other
+    double seconds = 6;
 
     @Override
     public void runOpMode()
     {
         robot = Bogg.determineRobot(hardwareMap, telemetry);
-        robot.driveEngine.setInitialAngle(Math.PI);
         g1 = gamepad1;
+
         waitForStart();
 
         while (opModeIsActive())
         {
             telemetry.addLine(robot.name.toString());
-            pinch += .05 * g1.left_stick_y * Bogg.averageClockTime;
-            telemetry.addData("pinch", pinch);
 
-            robot.endEffector.pinch.setPosition(pinch);
+            adjustServoPosition(robot.endEffector.pinch, "pinch", g1.left_stick_y);
 
-            swing += .05 * g1.right_stick_y * Bogg.averageClockTime;
-            telemetry.addData("swing", swing);
+            adjustServoPosition(robot.endEffector.swing, "swing", g1.right_stick_y);
 
-            robot.endEffector.swing.setPosition(swing);
+            adjustServoPosition(robot.drop, "drop", g1.y, g1.a);
 
-            if(g1.y && drop < 1)
-                drop += .1 * Bogg.averageClockTime;
-            if(g1.a && drop > -1)
-                drop -= .1 * Bogg.averageClockTime;
-
-            robot.drop.setPosition(drop);
-            telemetry.addData("drop", drop);
-
-            if(gamepad1.left_stick_button)
-                brake -= .1 * Bogg.averageClockTime;
-            if(gamepad1.right_stick_button)
-                brake += .1 * Bogg.averageClockTime;
-
-
-            robot.brake.setPosition(brake);
-            telemetry.addData("brake", brake);
-
+            adjustServoPosition(robot.brake, "brake", g1.left_stick_button, g1.right_stick_button);
 
             sleep(50);
             robot.update();
             idle();
         }
+    }
+
+    private void adjustServoPosition(Servo servo, String name, double speed)
+    {
+        if(g1.left_stick_y != 0)
+        {
+            servo.setPosition(Range.clip(servo.getPosition() + speed * Bogg.averageClockTime / seconds,0,1));
+        }
+        telemetry.addData(name, servo.getPosition());
+    }
+
+    private void adjustServoPosition(Servo servo, String name, boolean positive, boolean negative)
+    {
+        if(positive || negative)
+        {
+            servo.setPosition(Range.clip(servo.getPosition() + (positive? 1:-1) * Bogg.averageClockTime / seconds, 0,1));
+        }
+        telemetry.addData(name, servo.getPosition());
     }
 }
 
