@@ -124,6 +124,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @SuppressWarnings("WeakerAccess")
 public class FtcRobotControllerActivity extends Activity {
   public static FtcRobotControllerActivity a;
+  public Runnable r;
 
   public static final String TAG = "RCActivity";
 
@@ -163,6 +164,7 @@ public class FtcRobotControllerActivity extends Activity {
 
   public static int imageX = 400;
   public static int imageY = 200;
+  public static int imageSpin = 0;
 
   protected FtcRobotControllerService controllerService;
   protected NetworkType networkType;
@@ -750,6 +752,10 @@ public class FtcRobotControllerActivity extends Activity {
   @Override
   public boolean onTouchEvent(MotionEvent event) {
     updateUI.setTextViews(textNetworkConnectionStatus, textRobotStatus, textGamepad, textErrorMessage, textErrorMessage, textDeviceName);
+    r.run();
+    imageX = (int)event.getX();
+    imageY = (int)event.getY();
+    placeImage(imageX, imageY, imageSpin);
 
     super.onTouchEvent(event);
     return false;
@@ -778,7 +784,7 @@ public class FtcRobotControllerActivity extends Activity {
   }
 
   /**
-   * This static method changes where the robot is located on the screen.
+   * This method changes where the robot is located on the screen.
    * @param x
    * @param y
    * @param spin
@@ -787,13 +793,14 @@ public class FtcRobotControllerActivity extends Activity {
     //The origin point must be moved to where you want it on the field.
     //On the phone, 0,0 is in the top left corner.
     //Positive is down and to the right.
-    imageX = (int) x + 350;
-    imageY = (int) y + 500;
+    imageX = (int) x;
+    imageY = (int) y;
+    imageSpin = (int) spin;
 
     a.runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        a.placeImage(imageX, imageY, spin);
+        a.placeImage(imageX, imageY, imageSpin);
       }
     });
   }
