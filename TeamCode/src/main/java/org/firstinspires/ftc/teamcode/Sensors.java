@@ -1,5 +1,10 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -19,8 +24,6 @@ class Sensors {
 
     private TouchSensor touchTop;
     private TouchSensor touchBottom;
-    private DistanceSensor dLow;
-    private DistanceSensor dHigh;
 
     BNO055IMU imu = null;
 
@@ -29,6 +32,7 @@ class Sensors {
     // State used for updating telemetry
     Orientation angles;
     Acceleration gravity;
+    SensorEventListener sensorEventListener;
 
     Bogg.Name name;
 
@@ -38,6 +42,28 @@ class Sensors {
         this.hardwareMap = hardwareMap;
 
         this.name = whichRobot;
+
+        sensorEventListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent sensorEvent) {
+                switch (sensorEvent.sensor.getType()) {
+                    case Sensor.TYPE_ACCELEROMETER: {
+                        System.arraycopy(sensorEvent.values, 0, gravity1, 0, gravity1.length);
+                        break;
+                    }
+                    case Sensor.TYPE_MAGNETIC_FIELD: {
+                        System.arraycopy(sensorEvent.values, 0, geomagnetic, 0, geomagnetic.length);
+                        break;
+                    }
+                }
+                updateOrientationAngles();
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int i) {
+
+            }
+        };
 
         switch (name)
         {
@@ -91,27 +117,17 @@ class Sensors {
         return touchBottom.isPressed();
     }
 
-    ArrayList<Double> lowDistances = new ArrayList<>();
-    double getLowDistance()
-    {
-//        highDistances.add(dLow.getDistance(DistanceUnit.INCH));
-//
-//        if(lowDistances.size() > 3)
-//            lowDistances.remove(0);
-//
-//        return MyMath.median(lowDistances);
 
-        return 10;
-    }
-
+    /**
+     * This method could be used as a template for a distance sensor
+     * I would recommend a sliding average filter, but you could also use exponential.
+     */
     double highAverage = 0;
     double highAlpha = .4;
     ArrayList<Double> highDistances = new ArrayList<>();
     double getHighDistance()
     {
         double d = 30;
-//        double d = dHigh.getDistance(DistanceUnit.INCH);
-//        return d * highAlpha + highAverage * (1 - highAlpha);
         highDistances.add(d);
         if(highDistances.size() > 5)
             highDistances.remove(0);
@@ -139,9 +155,29 @@ class Sensors {
             Orientation orientation = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
             return Math.hypot(orientation.secondAngle, orientation.thirdAngle) > 10;
         }
-        else
-        {
-            return Math.random() < .0001;
-        }
+        return false;
     }
+
+    float[] gravity1 = new float[3];
+    float[] geomagnetic = new float[3];
+    float[] R = new float[16];
+    float[] orientation = new float[3];
+
+    float azimuth;
+    float pitch;
+    float roll;
+
+    private void updateOrientationAngles() {
+        SensorManager.getRotationMatrix(R, null, gravity1, geomagnetic);
+        SensorManager.getOrientation(R, orientation);
+        azimuth = orientation[0];
+        pitch = orientation[1];
+        roll = orientation[2];
+    }
+
+    void update()
+    {
+        updateOrientationAngles();
+    }
+
 }
