@@ -693,6 +693,6 @@ abstract class DriveEngine {
      */
     void moveRobotOnScreen()
     {
-        FtcRobotControllerActivity.moveRobot(trueX * 4.5, -trueY * 5.5, MyMath.degrees(spinAngle()));
+        Screen.moveRobotToPosition(trueX, trueY, spinAngle());
     }
 }
