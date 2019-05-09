@@ -36,6 +36,7 @@ public class Auto {
         LookForMinerals,
         PushGold,
         Slide2,
+        Slide2OneStep,
         WaitToDetectPicture,
         MoveToDepot,
         DropMarker,
@@ -123,7 +124,7 @@ public class Auto {
 
     Mode slide1()
     {
-        if (robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
+        if (robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
                 new double[]{0, 0}))
         {
             return Mode.PushGold;
@@ -165,11 +166,10 @@ public class Auto {
     Mode slide2()
     {
         telemetry.addData("time", getTime());
-        if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
-                new double[]{-38, 25},
-                new double[]{Math.PI / 4}))
+        if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
+                new double[]{-38, 25, Math.PI / 4}))
         {
-            return Mode.TurnByCamera;
+            return Mode.WaitToDetectPicture;
         }
         return Mode.Slide2;
     }
@@ -206,9 +206,7 @@ public class Auto {
 
     Mode moveToDepot()
     {
-        if(robot.driveEngine.moveOnPath(new double[]{0, 2},
-                                        new double[]{-iSP * 45,0})) {
-//                                        new double[]{iSP * Math.PI/2})) {
+        if(robot.driveEngine.moveOnPath(new double[]{-iSP * 45, 2,iSP * Math.PI/2})){
             timer.reset();
             return Mode.DropMarker;
         }
@@ -221,7 +219,6 @@ public class Auto {
         robot.dropMarker(Bogg.Direction.Down);
 
         if(getTime() > .5) {  //time to drop marker
-            robot.driveEngine.moveOnPath(new double[]{iSP * Math.PI/2});
             return Mode.MoveToCrater;
         }
 
@@ -305,7 +302,7 @@ public class Auto {
                 return true;
             else
             {
-                robot.driveEngine.moveOnPath(DriveEngine.Positioning.Relative, true,
+                robot.driveEngine.moveOnPath("curvy",DriveEngine.Positioning.Relative,
                         drive);
             }
         }
@@ -337,7 +334,7 @@ public class Auto {
                 return true;
             else
             {
-                robot.driveEngine.moveOnPath(DriveEngine.Positioning.Relative,true,
+                robot.driveEngine.moveOnPath(DriveEngine.Positioning.Relative,
                         drive);
             }
         }

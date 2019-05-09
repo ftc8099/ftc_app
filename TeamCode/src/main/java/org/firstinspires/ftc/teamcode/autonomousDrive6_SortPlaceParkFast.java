@@ -43,19 +43,19 @@ public class autonomousDrive6_SortPlaceParkFast extends LinearOpMode
                     break;
 
                 case Slide2:
-                    action = auto.slide2OneStep();
+                    action = auto.slide2();
                     break;
 
-                case TurnByCamera:
-                    action = auto.turnByCamera();
+                case WaitToDetectPicture:
+                    action = auto.waitToDetectPicture();
                     break;
 
                 case MoveToDepot:
-                    action = auto.moveToDepotOneStep();
+                    action = auto.moveToDepot();
                     break;
 
                 case DropMarker:
-                    action = auto.dropMarkerPure();
+                    action = auto.dropMarker();
                     break;
 
                 case MoveToCrater:

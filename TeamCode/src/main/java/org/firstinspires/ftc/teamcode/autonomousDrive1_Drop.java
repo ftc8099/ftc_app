@@ -46,8 +46,8 @@ public class autonomousDrive1_Drop extends LinearOpMode
                     action = auto.slide2();
                     break;
 
-                case TurnByCamera:
-                    action = auto.turnByCamera();
+                case WaitToDetectPicture:
+                    action = auto.waitToDetectPicture();
                     break;
 
                 case MoveToDepot:

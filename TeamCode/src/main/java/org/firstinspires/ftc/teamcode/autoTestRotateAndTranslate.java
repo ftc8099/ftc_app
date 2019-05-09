@@ -18,7 +18,7 @@ public class autoTestRotateAndTranslate extends LinearOpMode {
             if(robot.driveEngine.moveOnPath("hi", DriveEngine.Positioning.Absolute,
                     new double[]{0,12,Math.PI}))
                 if(timer.seconds() > 6)
-                    robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute, false,
+                    robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
                         new double[]{0,0, Math.PI});
 
             robot.update();
