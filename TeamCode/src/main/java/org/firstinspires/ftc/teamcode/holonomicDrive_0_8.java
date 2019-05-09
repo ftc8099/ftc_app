@@ -1,26 +1,23 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import java.util.ArrayList;
 
+@Disabled
 @TeleOp(name="holonomicDrive BackTrack", group="Testing")
 public class holonomicDrive_0_8 extends LinearOpMode
 {
     Bogg robot;
 
-    Gamepad g1;
-    private ElapsedTime timer;
-
     @Override
     public void runOpMode()
     {
         robot = Bogg.determineRobot(hardwareMap, telemetry);
-        timer = new ElapsedTime();
-        g1 = gamepad1;
+        Gamepad g1 = gamepad1;
         ArrayList<double[]> blackBox = new ArrayList<>();
         waitForStart();
 

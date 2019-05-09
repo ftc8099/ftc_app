@@ -1,25 +1,22 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
+@Disabled
 @TeleOp(name="holonomicDrive Retriever", group="Testing")
 public class holonomicDrive_0_7 extends LinearOpMode
 {
     Bogg robot;
-
-    Gamepad g1;
-    private ElapsedTime timer;
 
     @Override
     public void runOpMode()
     {
         robot = Bogg.determineRobot(hardwareMap, telemetry);
         robot.driveEngine.setInitialAngle(0);
-        timer = new ElapsedTime();
-        g1 = gamepad1;
+        Gamepad g1 = gamepad1;
         boolean runBack = false;
         waitForStart();
 
@@ -30,7 +27,7 @@ public class holonomicDrive_0_7 extends LinearOpMode
 
             if(runBack)
             {
-                runBack = !robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,false,
+                runBack = !robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
                        new double[]{0,0});
             }
             else

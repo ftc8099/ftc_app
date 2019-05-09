@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import java.util.ArrayList;
 
@@ -12,7 +11,7 @@ public class holonomicDrive_0_9 extends LinearOpMode
 {
     Bogg robot;
 
-    boolean runToTouch = false;
+    private boolean runToTouch = false;
 
     @Override
     public void runOpMode()

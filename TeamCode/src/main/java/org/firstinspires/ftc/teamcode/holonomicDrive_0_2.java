@@ -3,19 +3,11 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp(name="holonomicDrive Competition", group="Competition")
 public class holonomicDrive_0_2 extends LinearOpMode
 {
     Bogg robot;
-
-    private ElapsedTime timer;
-
-    private boolean leftButtonPressed = false;
-    private boolean rightButtonPressed = false;
-
-    private boolean autoOverride = false;
 
 
     @Override
@@ -27,11 +19,8 @@ public class holonomicDrive_0_2 extends LinearOpMode
 
         if(robot.name == Bogg.Name.Bogg)
             robot.endEffector.pivot.setPower(1);
-        timer = new ElapsedTime();
         Gamepad g1 = gamepad1;
         Gamepad g2 = gamepad2;
-
-        Button rightButton = new Button(gamepad2, Button.Location.D_Right, Button.Type.Click);
 
 
         while (opModeIsActive())
@@ -56,9 +45,6 @@ public class holonomicDrive_0_2 extends LinearOpMode
             else
                 robot.dropMarker(Bogg.Direction.Up);
 
-
-            if(robot.name == Bogg.Name.Bogg)
-                telemetry.addData("swing", robot.endEffector.swing.getPosition());
 
             //Lift
             if(robot.manualLift(g1.y, g1.a))

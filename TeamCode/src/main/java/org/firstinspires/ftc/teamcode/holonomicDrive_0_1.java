@@ -1,22 +1,23 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
+@Disabled
 @TeleOp(name="holonomicDrive Normal", group="Testing")
 public class holonomicDrive_0_1 extends LinearOpMode
 {
     Bogg robot;
 
-    Gamepad g1;
-
     @Override
     public void runOpMode()
     {
         robot = Bogg.determineRobot(hardwareMap, telemetry);
+        //Sets the front of the robot.
         robot.driveEngine.setInitialAngle(Math.PI);
-        g1 = gamepad1;
+        Gamepad g1 = gamepad1;
         waitForStart();
 
         while (opModeIsActive())
