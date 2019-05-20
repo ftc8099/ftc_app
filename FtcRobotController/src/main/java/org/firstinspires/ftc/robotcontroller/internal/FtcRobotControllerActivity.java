@@ -777,8 +777,8 @@ public class FtcRobotControllerActivity extends Activity {
     int textThickness = 25;
     int textHeight = 40;
     textOpMode.layout(X, Y, X + textThickness, Y + textHeight);
-
-    textOpMode.setText("O");
+    textOpMode.setCompoundDrawablesWithIntrinsicBounds(R.drawable.tiny_picture, 0, 0, 0);
+    //textOpMode.setText("O");
     textOpMode.setTextSize(20);
     textOpMode.setRotation((float) -spin);
   }
