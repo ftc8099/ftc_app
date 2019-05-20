@@ -6,6 +6,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 
+//Test gitpod
+
 public class Auto {
     Bogg robot;
     Camera camera;
