@@ -283,7 +283,7 @@ public class Bogg
         if(spin != 0)
             spinTimer.reset();
         if(spinTimer.seconds() < 1) {
-            driveEngine.resetForward();
+            driveEngine.resetCorrectionForwardToRobotForward();
             driveEngine.drive(0, op? 1:2.5, op,true,true,
                     x, -y, -spin);
         }

@@ -52,7 +52,7 @@ public class encoderFineTuning extends LinearOpMode
             telemetry.addData("sP", robot.driveEngine.sP);
             telemetry.addData("sD", robot.driveEngine.sD);
 
-            robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute, true,
+            robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
                     new double[]{deltaX, deltaY, deltaS});
 
 

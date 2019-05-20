@@ -2,9 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.ArrayList;
@@ -295,11 +293,17 @@ abstract class DriveEngine {
                 spinAve};
     }
 
-
+    void setInitialPosition(double x, double y)
+    {
+        trueX = x;
+        trueY = y;
+        lastCheckpoint = new double[]{trueX, trueY, forward};
+    }
     void setInitialAngle(double angle)
     {
         driveAngle = initialAngle = fieldAngle = angle;
     }
+    void setFieldAngle(double angle){fieldAngle = angle;}
 
     /**
      * Also known as pressing x
@@ -331,33 +335,20 @@ abstract class DriveEngine {
         updateTrueDistances();
     }
 
-    boolean justRestarted;
-    void resetDistances()
-    {
-        for (DcMotor motor: motors) {
-            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        }
-        justRestarted = true;
-    }
-
-    private double[] cumulativeDistance = new double[]{0,0};
-
-    private boolean justResetTarget = false;
-    ArrayList<Boolean> checkpoints = new ArrayList<>();
+    private int checkpointsLeft = 0;
     private ArrayList<String> keyList = new ArrayList<>();
 
     boolean moveOnPath(double[] ... args){
-        return moveOnPath(Positioning.Relative, false, args);
+        return moveOnPath(Positioning.Relative, args);
     }
     boolean moveOnPath(String key, double[] ... args){
-        return moveOnPath(key, Positioning.Relative, false, args);
+        return moveOnPath(key, Positioning.Relative, args);
     }
 
-    boolean moveOnPath(String key, Positioning positioning, boolean continuous, double[] ... args){
+    boolean moveOnPath(String key, Positioning positioning, double[] ... args){
         if(keyList.contains(key))
             return true;
-        if(moveOnPath(positioning, continuous, args)){
+        if(moveOnPath(positioning, args)){
             keyList.add(key);
             return true;
         }
@@ -370,37 +361,31 @@ abstract class DriveEngine {
         Relative
     }
 
+
+    void updateCheckpoint()
+    {
+        lastCheckpoint = new double[]{trueX, trueY};
+    }
+    private double[] lastCheckpoint = new double[]{trueX, trueY};
+
     /**
      *@param positioning is the type of positioning system.
-     *      *               Absolute is relative the origin point.
-     *      *               Relative is relative to robot's last position.
-     * @param continuous means that the function will never return true and restart;
-     *         it will continue to correct for error.
-     *         Use true when you continually test moving to different points.
-     *         Use false when the code changes to a new task after completion.
+     *      Absolute is relative the origin point.
+     *      Relative is relative to robot's last position.
+     *      Note: when using relative coordinates, a key should probably be used.
      * @param args is a list of a set of points. Each set looks like this: {3,4}
      *             and is encapsulated in a double[].
      *             The double[]s are added with commas to separate them.
      * @return if all checkpoints have been completed.
      */
-    boolean moveOnPath(Positioning positioning, boolean continuous, double[] ... args)
+    boolean moveOnPath(Positioning positioning, double[] ... args)
     {
-        if(checkpoints.isEmpty()){
-            for (double[] ignored : args) checkpoints.add(false);
-            justResetTarget = true;
+        if(checkpointsLeft == 0) {
+            checkpointsLeft = args.length;
         }
 
-        int c = 0;
-        for(boolean b: checkpoints)
-            if(b)
-                c++;
-
+        int c = args.length - checkpointsLeft;
         telemetry.addData("checkpoints count", c);
-        if(c == checkpoints.size())
-        {
-            checkpoints.clear();
-            return true;
-        }
 
         double targetAngle = forward;
         double currentAngle = spinAngle();
@@ -410,41 +395,53 @@ abstract class DriveEngine {
                 targetAngle = forward + args[c][0];
 
                 if(Math.abs(MyMath.loopAngle(targetAngle, currentAngle)) < MyMath.radians(2)) {
-                    if(!continuous || c != checkpoints.size() - 1){
-                        stop();
-                        forward += args[c][0];
-                        sumSpinError = 0;
-                        checkpoints.set(c, true);
-                        cumulativeDistance = new double[]{0,0};
-                        resetDistances();
-                        justResetTarget = true;
-                        break;
-                    }
+                    forward = targetAngle;
+                    sumSpinError = 0;
+                    checkpointsLeft--;
+                    break;
                 }
                 rotate(angularVelocityNeededToFace(targetAngle));
-                justResetTarget = false;
                 break;
             case 3:
                 targetAngle = forward + args[c][2];
 
             case 2:
                 double[] point = args[c];
-                double spin = angularVelocityNeededToFace(targetAngle);
 
-                double deltaX = 0;
-                double deltaY = 0;
+                double deltaX=0, deltaY=0, trueDeltaX, trueDeltaY;
+
+                double fieldToRobotRotation = fieldAngle - currentAngle - driveAngle;
 
                 switch (positioning)
                 {
                     case Absolute:
-                        double trueDeltaX = point[0] - trueX;
-                        double trueDeltaY = point[1] - trueY;
-                        deltaX =  trueDeltaX * Math.cos(-currentAngle) - trueDeltaY * Math.sin(-currentAngle);
-                        deltaY =  trueDeltaX * Math.sin(-currentAngle) + trueDeltaY * Math.cos(-currentAngle);
+                        //We know the difference between the target position and the robot's position in absolute coordinates
+                        trueDeltaX = point[0] - trueX;
+                        trueDeltaY = point[1] - trueY;
+                        //But we need to find out how the robot sees it; if it needs to move forward or backward.
+                        deltaX =  trueDeltaX * Math.cos(fieldToRobotRotation) - trueDeltaY * Math.sin(fieldToRobotRotation);
+                        deltaY =  trueDeltaX * Math.sin(fieldToRobotRotation) + trueDeltaY * Math.cos(fieldToRobotRotation);
                         break;
                     case Relative:
-                        deltaX = point[0] + cumulativeDistance[0] - xDist();
-                        deltaY = point[1] + cumulativeDistance[1] - yDist();
+                        //This part transfers the relative vector to where it should be: relative to robot forward.
+                        //We are finding trueXY (absolute) coordinates for the next checkpoint.
+                        double previousAngle = forward + driveAngle - fieldAngle; //angle between robot forward and field forward
+                        double truePointX = lastCheckpoint[0] + point[0] * Math.cos(previousAngle) - point[1] * Math.sin(previousAngle);
+                        double truePointY = lastCheckpoint[1] + point[1] * Math.sin(previousAngle) + point[0] * Math.cos(previousAngle);
+
+                        //Then we find deltaX and deltaY relative to the robot's current position.
+                        //Note that the last part was concerned with the robot's previous position.
+                        trueDeltaX = truePointX - trueX;
+                        trueDeltaY = truePointY - trueY;
+                        deltaX =  trueDeltaX * Math.cos(fieldToRobotRotation) - trueDeltaY * Math.sin(fieldToRobotRotation);
+                        deltaY =  trueDeltaX * Math.sin(fieldToRobotRotation) + trueDeltaY * Math.cos(fieldToRobotRotation);
+                }
+
+                if(motors.size() == 2)
+                {
+                    //Remember that 0 is oriented with motor0, so you can only move on the x axis.
+                    //We want deltaY to be zero. When it is, the arctangent term is also zero.
+                    targetAngle = Math.atan2(deltaY, deltaX);
                 }
 
                 telemetry.addData("deltaX", deltaX);
@@ -453,26 +450,15 @@ abstract class DriveEngine {
                 double r = Math.hypot(deltaX, deltaY);
 
                 double[] drive = move(deltaX, deltaY);
+                double spin = angularVelocityNeededToFace(targetAngle);
 
-
-
-                double driveX = drive[0];
-                double driveY = drive[1];
-
-                if(r <= .75 || Math.hypot(driveX, driveY) == 0 //happens when theta changes rapidly
-                    && !(continuous && c == checkpoints.size() - 1 )){ //Don't move on if continuous
-                        stop();
-                        if(args[c].length == 3) {
-                            forward += args[c][2];
-                            sumSpinError = 0;
-                        }
-                        this.checkpoints.set(c, true);
-                        cumulativeDistance[0] += args[c][0];
-                        cumulativeDistance[1] += args[c][1];
-                        drdtArray = new ArrayList<>();
-                        dThdtArray = new ArrayList<>();
-                        justResetTarget = true;
-                        break;
+                if(r <= .75){
+                    if(args[c].length == 3) {
+                        sumSpinError = 0;
+                    }
+                    forward = targetAngle;
+                    checkpointsLeft--;
+                    break;
                 }
                 else {
                     //smooth the driving when revving to a high speed, then reset the average to 0.
@@ -482,10 +468,10 @@ abstract class DriveEngine {
                     else
                         drive(drive[0], drive[1], spin);
                 }
-                justResetTarget = false;
                 break;
         }
-        return false;
+
+        return checkpointsLeft == 0;
     }
 
 
@@ -542,7 +528,8 @@ abstract class DriveEngine {
         lastSpinTime = t;
         return power;
     }
-    void resetForward()
+
+    void resetCorrectionForwardToRobotForward()
     {
         forward = spinAngle();
         sumSpinError = 0;
@@ -550,16 +537,11 @@ abstract class DriveEngine {
 
 
     private double lastR = 0;
-    private double lastTheta = 0;
     private double lastT = 0;
     double mP = .02; //power per inch
     double mD = 0.5;  //fully account for this much time in the future at current error decreasing rate
-    double tD = 0.08;
 
-    private ArrayList<Double> drdtArray = new ArrayList<>();
-    private ArrayList<Double> dThdtArray = new ArrayList<>();
-
-    double[] move(double deltaX, double deltaY)
+    private double[] move(double deltaX, double deltaY)
     {
         //    u(t) = MV(t) = P *( r(t) + 1/D *dr(t)/dt )
         //    where
@@ -574,55 +556,29 @@ abstract class DriveEngine {
         double dr = r - lastR;
         double t = timer.seconds();
         double dt = t - lastT;
-        double dTheta = MyMath.loopAngle(theta, lastTheta);
-        if(justResetTarget)
-            dTheta = 0;
         double drdt = dr / dt;
-        drdtArray.add(drdt);
-
-        if(drdtArray.size() > 5) //keep the size to 5
-            drdtArray.remove(0);
-
-
-        double dThdt =  dTheta / dt;
-        dThdtArray.add(dThdt);
-
-        if(dThdtArray.size() > 11) //keep the size to 11
-            dThdtArray.remove(0);
 
 
         telemetry.addData("theta", theta);
-        telemetry.addData("dTheta", dTheta);
 
-        //negative because our target is zero
-        double tangentPower = -Range.clip(mP * (tD * MyMath.ave(dThdtArray) * r), -.1, .1);
-        //dTheta*r / dt is in inches / sec
-        //therefore tD is in seconds
-
-        telemetry.addData("dtheta/dt / r", dTheta/dr/r);
-        if(dr != 0 && Math.abs(dTheta / dr / r ) > 2){ //2 rad per inch^2
-            return new double[]{0,0};
-        }
-
-        double power = mP * (r +  mD * MyMath.ave(drdtArray));
-        telemetry.addData("moveD term", mD * MyMath.ave(drdtArray));
+        double power = mP * (r +  mD * drdt);
+        telemetry.addData("moveD term", mD * drdt);
         telemetry.addData("power", power);
-        telemetry.addData("moveD / power",mD * MyMath.ave(drdtArray) / power);
+        telemetry.addData("moveD / power",mD * drdt / power);
 
-        telemetry.addData("moveT term", tangentPower);
         if(power > .5) power = .5;
-        //Don't worry, it's smoothed
+        //Don't worry; it's smoothed
 
         lastR = r;
         lastT = t;
-        lastTheta = theta;
 
-        return new double[]{Math.cos(theta) * power - Math.sin(theta) * tangentPower,
-                            Math.sin(theta) * power + Math.cos(theta) * tangentPower};
+        return new double[]{Math.cos(theta) * power,
+                            Math.sin(theta) * power};
     }
 
 
 
+    //What this should do is change the robot's center of rotation.
     abstract void orbit(double radius, double angle, double speed);
 
 
@@ -639,7 +595,7 @@ abstract class DriveEngine {
     /**
      * A method for finding distance travelled.
      * This method should assume the robot does not rotate.
-     * X is in the direction of 0, or right.
+     * X is in the direction of motor0, or right.
      *
      * @return inches travelled in the x direction
      */
@@ -678,6 +634,10 @@ abstract class DriveEngine {
     double lastX = 0;
     double lastY = 0;
 
+    private boolean trackDistances = true;
+    void disableDistanceTracking(){trackDistances = false;}
+    void enableDistanceTracking(){trackDistances = true;}
+
     /**
      * This method updates trueX and trueY.
      * It also reports the motor positions to the screen.
@@ -695,17 +655,13 @@ abstract class DriveEngine {
         double dX = x - lastX;
         double dY = y - lastY;
 
-        if(justRestarted){
-            justRestarted = false;
-            dX = 0;
-            dY = 0;
-        }
-
         double xPrime = dX * Math.cos(spin) - dY * Math.sin(spin);
         double yPrime = dX * Math.sin(spin) + dY * Math.cos(spin);
 
-        trueX += xPrime;
-        trueY += yPrime;
+        if(trackDistances) {
+            trueX += xPrime;
+            trueY += yPrime;
+        }
 
         lastX = x;
         lastY = y;

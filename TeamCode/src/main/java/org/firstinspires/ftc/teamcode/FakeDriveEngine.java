@@ -58,12 +58,6 @@ public class FakeDriveEngine extends OmniWheelDriveEngine {
         return new double[]{};
     }
 
-    @Override
-    void resetDistances() {
-        xDistance = 0;
-        yDistance = 0;
-        justRestarted = true;
-    }
 
     @Override
     void floatMotors() {}
@@ -91,12 +85,6 @@ public class FakeDriveEngine extends OmniWheelDriveEngine {
     void updateTrueDistances() {
         double dX = xDist() - lastX;
         double dY = yDist() - lastY;
-
-        if(justRestarted){
-            justRestarted = false;
-            dX = 0;
-            dY = 0;
-        }
 
         double spin = spinAngle();
         double xPrime = dX * Math.cos(spin) - dY * Math.sin(spin);
