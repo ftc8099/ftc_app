@@ -10,7 +10,7 @@ public class Auto {
     Bogg robot;
     Camera camera;
     Telemetry telemetry;
-    ElapsedTime timer = null;
+    ElapsedTime timer;
     private int iSP = -1; //initialSlopePositivity
     private int goldPosition = -1;
 
@@ -18,6 +18,8 @@ public class Auto {
     {
         this.robot = Bogg.determineRobot(hardwareMap, telemetry);
         robot.driveEngine.setInitialAngle(0);
+        robot.driveEngine.setFieldAngle(-Math.PI /4);
+        robot.driveEngine.setInitialPosition(6,6);
         this.telemetry = telemetry;
         camera = new Camera(hardwareMap, telemetry, false, true);
         telemetry.addLine("Camera Loaded");
@@ -49,42 +51,11 @@ public class Auto {
     //Pull robot up until touchBottom is true
     //Then move brake
     //Then lower robot until touchTop is true
-    boolean breakIsActuallySet = true;
-    boolean breakIsSet = false;
     boolean movingBreak = false;
-    Mode drop()
-    {
-        if(breakIsSet && !robot.sensors.touchTopIsPressed() && !robot.sensors.touchBottomIsPressed())
-        {
-            robot.lift(-1);
-        }
-        else if(breakIsSet && !robot.sensors.touchTopIsPressed())
-        {
-            if(!movingBreak)
-            {
-                movingBreak = true;
-                timer.reset();
-                robot.setBrake(Bogg.Direction.Off);
-            }
-            else if(timer.seconds() > 1)
-                breakIsSet = false;
-        }
-        else if(!breakIsSet && !robot.sensors.touchTopIsPressed())
-        {
-            robot.lift(.2); //push up, which drops the robot
-        }
-        else if(robot.sensors.touchTopIsPressed()){
-            timer.reset();
-            robot.lift(0); //Turns motor off
-            robot.driveEngine.trueX = -4;
-            robot.driveEngine.trueY = 0;
-            return Mode.LookForMinerals;
-        }
-        return Mode.Drop;
-    }
 
     Mode actuallyDrop()
     {
+        robot.driveEngine.disableDistanceTracking();
         if(!movingBreak)
         {
             timer.reset();
@@ -105,8 +76,6 @@ public class Auto {
         else if(robot.sensors.touchTopIsPressed()){
             timer.reset();
             robot.lift(0); //Turns motor off
-            robot.driveEngine.trueX = -4;
-            robot.driveEngine.trueY = 0;
             return Mode.LookForMinerals;
         }
         return Mode.Drop;
@@ -124,8 +93,9 @@ public class Auto {
 
     Mode slide1()
     {
+        robot.driveEngine.enableDistanceTracking();
         if (robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
-                new double[]{0, 0}))
+                new double[]{3, 9}))
         {
             return Mode.PushGold;
         }
@@ -137,23 +107,23 @@ public class Auto {
         telemetry.addData("gold position", goldPosition);
         switch (goldPosition) {
             case 0:
-                if (robot.driveEngine.moveOnPath(
-                        new double[]{-17, 36},
-                        new double[]{0, -16})) {
+                if (robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
+                        new double[]{24, 48},
+                        new double[]{12, 36})) {
                     return Mode.Slide2;
                 }
                 break;
             case 1:
                 if (robot.driveEngine.moveOnPath(
-                        new double[]{0, 36},
-                        new double[]{0, -16})) {
+                        new double[]{36, 36},
+                        new double[]{24, 24})) {
                     return Mode.Slide2;
                 }
                 break;
             case 2:
                 if (robot.driveEngine.moveOnPath(
-                        new double[]{17, 36},
-                        new double[]{0, -16})) {
+                        new double[]{48, 24},
+                        new double[]{36, 12})) {
                     return Mode.Slide2;
                 }
                 break;
@@ -167,14 +137,14 @@ public class Auto {
     {
         telemetry.addData("time", getTime());
         if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
-                new double[]{-38, 25, Math.PI / 4}))
+                new double[]{0, 56, Math.PI / 4}))
         {
             return Mode.WaitToDetectPicture;
         }
         return Mode.Slide2;
     }
 
-    void setiSP(double[] location)
+    private void setiSP(double[] location)
     {
         double max = Math.max(Math.abs(location[0]), Math.abs(location[1]));
         iSP = max == Math.abs(location[1])? 1 : -1;
@@ -195,10 +165,8 @@ public class Auto {
         double[] location = camera.getLocation();
         if(location != null)
         {
-            double max = Math.max(Math.abs(location[0]), Math.abs(location[1]));
-            iSP = max == Math.abs(location[1])? 1 : -1;
+            setiSP(location);
             return Mode.MoveToDepot;
-
         }
         return Mode.WaitToDetectPicture;
     }
@@ -206,7 +174,8 @@ public class Auto {
 
     Mode moveToDepot()
     {
-        if(robot.driveEngine.moveOnPath(new double[]{-iSP * 45, 2,iSP * Math.PI/2})){
+        if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
+                new double[]{-iSP * 56, 56, iSP * Math.PI/2})){
             timer.reset();
             return Mode.DropMarker;
         }
@@ -229,17 +198,16 @@ public class Auto {
     Mode moveToCrater()
     {
         robot.driveEngine.drive(0,2,true, 0,1);
-        telemetry.addData("yDist", robot.driveEngine.yDist());
+        telemetry.addData("trueX", robot.driveEngine.trueX);
         telemetry.addData("usingImu", robot.sensors.usingImu);
 
-        if(robot.sensors.usingImu) {
-            if (robot.sensors.isTilted() || robot.driveEngine.yDist() < -12 * 10)
-                return Mode.Stop;
-        }
-        else if (robot.driveEngine.yDist() < -12 * 10)
-        {
+        if(robot.sensors.usingImu)
+            if (robot.sensors.isTilted())
+                    return Mode.Stop;
+
+        if (robot.driveEngine.trueX * iSP > 24)
             return Mode.Stop;
-        }
+
 
         return Mode.MoveToCrater;
     }
@@ -265,7 +233,6 @@ public class Auto {
         if(wallHeading != null)
         {
             if(Math.abs(wallHeading) < accuracy_angle) {
-                robot.driveEngine.resetDistances();
                 return true;
             }
             else
