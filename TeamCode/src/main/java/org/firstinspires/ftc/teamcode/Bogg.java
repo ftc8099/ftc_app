@@ -11,7 +11,6 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class Bogg
 {
     DriveEngine driveEngine;
-    EndEffector endEffector;
     DcMotor lift;
     Sensors sensors;
     ElapsedTime timer;
@@ -82,7 +81,6 @@ public class Bogg
         {
             case Bogg:
                 driveEngine = new OmniWheelDriveEngine(hardwareMap, telemetry, sensors, 3);
-                endEffector = new EndEffector(hardwareMap, telemetry, sensors);
                 break;
 
             case MiniBogg:

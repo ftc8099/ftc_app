@@ -17,8 +17,6 @@ public class holonomicDrive_0_2 extends LinearOpMode
         telemetry.addLine("ready");
         waitForStart();
 
-        if(robot.name == Bogg.Name.Bogg)
-            robot.endEffector.pivot.setPower(1);
         Gamepad g1 = gamepad1;
         Gamepad g2 = gamepad2;
 
@@ -62,16 +60,6 @@ public class holonomicDrive_0_2 extends LinearOpMode
                     g1.left_stick_y,
                     g1.right_stick_x);
 
-
-            //if the moveOnPaths have finished
-            robot.driveEngine.checkpoints.clear();
-
-
-            if(robot.name == Bogg.Name.Bogg)
-                if(!robot.endEffector.extend(-g2.left_stick_y)){
-                    if(!robot.endEffector.extend(g2.right_stick_y))
-                        robot.endEffector.contract.setPower(0);
-                }
 
 
             if(g1.back)
