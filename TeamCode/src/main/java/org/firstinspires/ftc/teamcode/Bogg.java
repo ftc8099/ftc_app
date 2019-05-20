@@ -10,21 +10,21 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class Bogg
 {
+    Telemetry telemetry;
     DriveEngine driveEngine;
+    Screen screen;
     DcMotor lift;
     Sensors sensors;
-    ElapsedTime timer;
     Servo brake;
     Servo drop;
     Name name;
 
+    private ElapsedTime timer;
+    private ElapsedTime spinTimer;
+
     static double averageClockTime = 0;
     private double liftAve = 0;
 
-    private boolean rotating = false;
-
-
-    Telemetry telemetry;
 
     enum Direction
     {
@@ -49,7 +49,9 @@ public class Bogg
     {
         this.telemetry = telemetry;
         this.name = whichRobot;
+        screen = new Screen();
         timer = new ElapsedTime();
+        spinTimer = new ElapsedTime();
 
         switch (whichRobot)
         {
@@ -125,7 +127,6 @@ public class Bogg
         return robot;
     }
 
-
     /**
      * This method finds an equilibrium lifting point using an exponential average
      * @param l: How much to lift
@@ -197,7 +198,7 @@ public class Bogg
     void setBrake(Direction direction)
     {
         if(name == Name.Bogg)
-        switch (d) {
+        switch (direction) {
             case On:
                 brake.setPosition(.73);
                 break;
@@ -244,9 +245,6 @@ public class Bogg
         driveEngine.drive(op, x, -y, -spin);
     }
 
-    ElapsedTime spinTimer = new ElapsedTime();
-
-
     /**
      * This method automatically corrects for incidental rotation.
      * It also orients the gamepad direction to the field.
@@ -262,11 +260,6 @@ public class Bogg
         manualDriveAutoCorrect(op, x, y, spin);
 
         driveEngine.orientRobotDirectionToField();
-
-        telemetry.addData("gamepad x", x);
-        telemetry.addData("gamepad y", y);
-        telemetry.addData("gamepad spin", spin);
-        telemetry.addLine("Note: y and spin are negated");
     }
 
 
@@ -309,7 +302,6 @@ public class Bogg
         driveEngine.floatMotors();
         if(name == Name.Bogg)
         {
-            endEffector.floatMotors();
             lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
             telemetry.addData("lift position", lift.getCurrentPosition());
         }
@@ -348,6 +340,6 @@ public class Bogg
     {
         if(seconds == 0)
             return 1;
-        return 1 - Math.pow(.05, averageClockTime/seconds); //reaches 95% in this many seconds
+        return 1 - Math.pow(1 - .95, averageClockTime/seconds); //reaches 95% in this many seconds
     }
 }
