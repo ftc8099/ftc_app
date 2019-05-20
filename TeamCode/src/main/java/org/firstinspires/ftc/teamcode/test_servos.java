@@ -29,10 +29,6 @@ public class test_servos extends LinearOpMode
         {
             telemetry.addLine(robot.name.toString());
 
-            adjustServoPosition(robot.endEffector.pinch, "pinch", g1.left_stick_y);
-
-            adjustServoPosition(robot.endEffector.swing, "swing", g1.right_stick_y);
-
             adjustServoPosition(robot.drop, "drop", g1.y, g1.a);
 
             adjustServoPosition(robot.brake, "brake", g1.left_stick_button, g1.right_stick_button);
@@ -45,7 +41,7 @@ public class test_servos extends LinearOpMode
 
     private void adjustServoPosition(Servo servo, String name, double speed)
     {
-        if(g1.left_stick_y != 0)
+        if(speed != 0)
         {
             servo.setPosition(Range.clip(servo.getPosition() + speed * Bogg.averageClockTime / seconds,0,1));
         }

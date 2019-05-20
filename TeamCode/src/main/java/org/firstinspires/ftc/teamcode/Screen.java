@@ -7,6 +7,8 @@ public class Screen {
     private static final double screenHeight = 1000;
     private static final double screenLength = 700;
 
+    private static final double fieldInches = 144;
+
     private static double xScalar = 4.5;
     private static double yScalar = 5.5;
 
@@ -55,7 +57,7 @@ public class Screen {
         fieldCoordinates[1] = getFieldY(FtcRobotControllerActivity.imageY);
     }
 
-    public boolean wasTouched() {
+    boolean wasTouched() {
         if(wasTouched) {
             wasTouched = false;
             return true;
