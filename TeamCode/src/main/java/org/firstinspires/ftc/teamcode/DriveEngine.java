@@ -172,13 +172,13 @@ abstract class DriveEngine {
             //Unless stopping has explicit precedence.
             //If the values are zero, we break out.
             if(precedence == MyMath.max(precedences))
-                if(MyMath.absoluteMax(potentialDrivePacket.args) == 0)
+                if(MyMath.absoluteMax(potentialDrivePacket.xys) == 0)
                     return;
         }
         //If we've made it to this point, we want to keep our drive values.
         //We save the precedence
         precedences.add(precedence);
-        //We save op and args into an array.
+        //We save op and xys into an array.
 
         //We put our drive values in the first spot in the potential ArrayList.
         potentialDrivePackets.add(0, potentialDrivePacket);
