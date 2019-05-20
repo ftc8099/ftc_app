@@ -16,8 +16,33 @@ abstract class DriveEngine {
 
     static double effectiveWheelDiameter = 6;
 
-    private double spinAve,rAve,thetaAve,forward;
-    private double driveAngle,initialAngle,fieldAngle;
+    private double spinAve,rAve,thetaAve;
+
+    /**
+     * Forward is compared to spinAngle(), which is the angle the gyroscope has moved from its initial position.
+     * So forward is also measured relative to the gyroscope's initial position.
+     * Forward is generally the angle the gyroscope tries to match up with.
+     * When spinning to a new position, forward retains the last position for reference.
+     */
+    private double forward;
+    /**
+     * The default x-axis on the robot points in the direction of the 0 motor.
+     * Initial angle rotates the x-axis and sets the new default.
+     * It changes where you can think of the front of the robot.
+     * Initial angle is relative to the direction of the 0 motor.
+     */
+    private double initialAngle;
+    /**
+     * DriveAngle is relative to initialAngle.
+     * If the driveEngine is directed to move in the positive x direction, it will move in the direction of driveAngle.
+     */
+    private double driveAngle;
+    /**
+     * FieldAngle is the rotation of the trueXY coordinate system relative to initialAngle. I think.
+     * If the robot is angled diagonally relative to the field to start, fieldAngle could be set to pi/4.
+     */
+    private double fieldAngle;
+
     ElapsedTime timer;
     Telemetry telemetry;
     SmoothingType currentSmoothing = SmoothingType.Linear;
