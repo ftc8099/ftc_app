@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.util;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 
@@ -100,19 +100,14 @@ class Button {
 
     int count()
     {
-        switch (type)
-        {
-            case Increment:
-                if(isPressed() && !lastPressed) {
-                    on = !on;
-                    if(on)
-                        count ++;
-                }
-                lastPressed = isPressed();
-                return count;
-            default:
-                return isOn()? 1:0;
+        if (type == Type.Increment) {
+            if (isPressed() && !lastPressed) {
+                count++;
+            }
+            lastPressed = isPressed();
+            return count;
         }
+        return isOn() ? 1 : 0;
     }
 
 }

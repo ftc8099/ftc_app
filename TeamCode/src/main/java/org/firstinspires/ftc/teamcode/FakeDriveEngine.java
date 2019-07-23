@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.MyMath;
 
 public class FakeDriveEngine extends OmniWheelDriveEngine {
 
@@ -12,6 +13,7 @@ public class FakeDriveEngine extends OmniWheelDriveEngine {
 
     FakeDriveEngine(Telemetry telemetry)
     {
+        super(telemetry);
         this.telemetry = telemetry;
         timer = new ElapsedTime();
     }
@@ -28,7 +30,7 @@ public class FakeDriveEngine extends OmniWheelDriveEngine {
         double rightPower = -x/2 + y*root3/2 + spin;
         double leftPower  = -x/2 - y*root3/2 + spin;
 
-        double max = Math.max(Math.max(Math.abs(backPower),Math.abs(rightPower)),Math.abs(leftPower));
+        double max = MyMath.absoluteMax(x, y, spin);
         if(max > 1 || (op && Math.hypot(x,y) > .90))
         {
             backPower  /= max;    // Adjust all motors to less than one
@@ -63,7 +65,7 @@ public class FakeDriveEngine extends OmniWheelDriveEngine {
     void floatMotors() {}
 
     @Override
-    double spinAngle() {
+    double getCurrentAngle() {
         return sDistance / effectiveRobotRadius;
     }
 
@@ -86,7 +88,7 @@ public class FakeDriveEngine extends OmniWheelDriveEngine {
         double dX = xDist() - lastX;
         double dY = yDist() - lastY;
 
-        double spin = spinAngle();
+        double spin = getCurrentAngle();
         double xPrime = dX * Math.cos(spin) - dY * Math.sin(spin);
         double yPrime = dX * Math.sin(spin) + dY * Math.cos(spin);
 

@@ -2,60 +2,22 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 @Disabled
 @Autonomous(name="4: Competition", group = "Competition")
-public class autonomousDrive4_DropPlacePark extends LinearOpMode
+public class autonomousDrive4_DropPlacePark extends AutonomousOpmode
 {
-    Auto auto;
-    Auto.Mode action;
-
-
     @Override
-    public void runOpMode()
-    {
-        auto = new Auto(hardwareMap, telemetry);
-        action = Auto.Mode.Drop;
-        waitForStart();
+    public void runOpMode(){
+        setOrder(Auto.Mode.Drop,
+                Auto.Mode.Slide1,
+                Auto.Mode.Slide2,
+                Auto.Mode.WaitToDetectPicture,
+                Auto.Mode.MoveToDepot,
+                Auto.Mode.DropMarker,
+                Auto.Mode.MoveToCrater,
+                Auto.Mode.Stop);
 
-        while (opModeIsActive())
-        {
-            // TODO: Don't forget the breaks!!!
-            switch(action)
-            {
-                case Drop:
-                    action = auto.drop();
-                    break;
-                case Slide1:
-                    action = auto.slide1();
-                    break;
-                case LookForMinerals:
-                case PushGold:
-                case Slide2:
-                    action = auto.slide2();
-                    break;
-                case WaitToDetectPicture:
-                    action = auto.waitToDetectPicture();
-                    break;
-                case MoveToDepot:
-                    action = auto.moveToDepot();
-                    break;
-                case DropMarker:
-                    action = auto.dropMarker();
-                    break;
-                case MoveToCrater:
-                    action = auto.moveToCrater();
-                    break;
-                default:
-                    action = auto.stop();
-            }
-
-            // Display the current values
-            telemetry.addData("mode:", action);
-            auto.update();
-            idle();
-        }
-        auto.stop();
+        super.runOpMode();
     }
 }

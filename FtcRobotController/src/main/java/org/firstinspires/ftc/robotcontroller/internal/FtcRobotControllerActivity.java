@@ -47,9 +47,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.StringRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -61,6 +61,7 @@ import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.google.blocks.ftcrobotcontroller.BlocksActivity;
 import com.google.blocks.ftcrobotcontroller.ProgrammingModeActivity;
 import com.google.blocks.ftcrobotcontroller.ProgrammingModeControllerImpl;
@@ -386,6 +387,8 @@ public class FtcRobotControllerActivity extends Activity {
         return false;
       }
     });
+
+    FtcDashboard.start();
   }
 
   @Override
@@ -429,6 +432,8 @@ public class FtcRobotControllerActivity extends Activity {
 
     preferencesHelper.getSharedPreferences().unregisterOnSharedPreferenceChangeListener(sharedPreferencesListener);
     RobotLog.cancelWriteLogcatToDisk();
+
+    FtcDashboard.stop();
   }
 
   protected void bindToService() {
@@ -623,6 +628,9 @@ public class FtcRobotControllerActivity extends Activity {
         return service.getRobot().eventLoopManager;
       }
     });
+
+
+    //FtcDashboard.attachWebServer(service.getWebServer());
   }
 
   private void updateUIAndRequestRobotSetup() {
@@ -662,6 +670,8 @@ public class FtcRobotControllerActivity extends Activity {
     controllerService.setupRobot(eventLoop, idleLoop, runOnComplete);
 
     passReceivedUsbAttachmentsToEventLoop();
+
+    FtcDashboard.attachEventLoop(eventLoop);
   }
 
   protected OpModeRegister createOpModeRegister() {

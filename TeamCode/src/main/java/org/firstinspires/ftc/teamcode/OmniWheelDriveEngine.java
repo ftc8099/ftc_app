@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.MyMath;
 
 public class OmniWheelDriveEngine extends DriveEngine {
 
@@ -15,8 +16,6 @@ public class OmniWheelDriveEngine extends DriveEngine {
     static double ticksPerRev = 1120;
     static double inPerRev(){return Math.PI * effectiveWheelDiameter;}
     static double inPerTicks(){return inPerRev() / ticksPerRev;}
-
-    OmniWheelDriveEngine() {}
 
     OmniWheelDriveEngine(HardwareMap hardwareMap, Telemetry telemetry, Sensors sensors, int numMotors)
     {
@@ -62,6 +61,11 @@ public class OmniWheelDriveEngine extends DriveEngine {
             //They use PID control to keep the speed constant.
             motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
+    }
+
+    OmniWheelDriveEngine(Telemetry telemetry)
+    {
+        super(telemetry);
     }
 
 

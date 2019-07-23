@@ -10,6 +10,13 @@
 // Custom definitions may go here
 // Include common definitions from above.
 apply from: '../build.common.gradle'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 dependencies {
     implementation files('jama-1.0.3.jar')
+    implementation 'org.openftc:rev-extensions-2:1.1'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+}
+repositories {
+    mavenCentral()
 }

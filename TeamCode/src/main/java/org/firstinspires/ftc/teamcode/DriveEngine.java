@@ -4,25 +4,28 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.DriveValuePacket;
+import org.firstinspires.ftc.teamcode.util.MyMath;
 
 import java.util.ArrayList;
 
-abstract class DriveEngine {
+public abstract class DriveEngine {
     ArrayList<DcMotor> motors = new ArrayList<>();
 
     Sensors sensors;
 
+    //Eventually we just used the actual wheel diameter, and it works fine.
     static double effectiveWheelDiameter = 6;
 
     private double spinAve,rAve,thetaAve;
 
     /**
-     * Forward is compared to spinAngle(), which is the angle the gyroscope has moved from its initial position.
+     * Forward is compared to getCurrentAngle(), which is the angle the gyroscope has moved from its initial position.
      * So forward is also measured relative to the gyroscope's initial position.
      * Forward is generally the angle the gyroscope tries to match up with.
      * When spinning to a new position, forward retains the last position for reference.
      */
-    private double forward;
+    double forward;
     /**
      * The default x-axis on the robot points in the direction of the 0 motor.
      * Initial angle rotates the x-axis and sets the new default.
@@ -43,12 +46,24 @@ abstract class DriveEngine {
 
     ElapsedTime timer;
     Telemetry telemetry;
-    SmoothingType currentSmoothing = SmoothingType.Linear;
+    private SmoothingType currentSmoothing = SmoothingType.Linear;
 
     double[] blackValues = new double[3];
 
     double trueX;
     double trueY;
+
+    //Potential drive values
+    private ArrayList<DriveValuePacket> potentialDrivePackets = new ArrayList<>();
+
+    //Answers the question: which drive value do we choose?
+    private ArrayList<Integer> precedences = new ArrayList<>();
+
+    private ArrayList<Double> smoothRList = new ArrayList<>();
+    private ArrayList<Double> smoothThetaList = new ArrayList<>();
+    private ArrayList<Double> smoothSpinList = new ArrayList<>();
+
+
 
     DriveEngine(Telemetry telemetry, Sensors sensors) {
         this.telemetry = telemetry;
@@ -58,21 +73,11 @@ abstract class DriveEngine {
     }
 
     //Used in the FakeDriveEngine
-    DriveEngine() {
+    DriveEngine(Telemetry telemetry) {
+        this.telemetry = telemetry;
     }
 
-    //Potential drive values
-    private ArrayList<DriveValuePacket> potentialDrivePackets = new ArrayList<>();
-
-    //Answers the question: which drive value do we choose?
-    private ArrayList<Integer> precedences = new ArrayList<>();
-
-
-    private ArrayList<Double> smoothRList = new ArrayList<>();
-    private ArrayList<Double> smoothThetaList = new ArrayList<>();
-    private ArrayList<Double> smoothSpinList = new ArrayList<>();
-
-    enum SmoothingType {
+    public enum SmoothingType {
         Exponential,
         Linear
     }
@@ -178,6 +183,7 @@ abstract class DriveEngine {
         precedences.add(precedence);
         //We save op and xys into an array.
 
+
         //We put our drive values in the first spot in the potential ArrayList.
         potentialDrivePackets.add(0, potentialDrivePacket);
     }
@@ -188,8 +194,7 @@ abstract class DriveEngine {
      * It clears some objects for use in the next loop.
      */
     void update(){
-        //If all is working, this line should appear.
-        //It might not if the update method is left out of an OpMode.
+        //If all is working, this line should appear; it might not if the update method is left out of an OpMode.
         telemetry.addLine("updating");
 
         //Once per loop, we update the motor powers.
@@ -200,8 +205,7 @@ abstract class DriveEngine {
             telemetry.addData("motor" + i + " power", motorPowers[i]);
         }
 
-
-        //We prepare for the next loop by clearing one-loop lists and counters.
+        //We prepare for the next loop by clearing temporary lists and counters.
         precedences.clear();
         potentialDrivePackets.clear();
         updateTrueDistances();
@@ -310,7 +314,7 @@ abstract class DriveEngine {
      */
     void resetFieldHeadingToRobotHeading()
     {
-        fieldAngle = initialAngle + spinAngle();
+        fieldAngle = initialAngle + getCurrentAngle();
     }
 
     /**
@@ -318,7 +322,7 @@ abstract class DriveEngine {
      */
     void orientRobotDirectionToField()
     {
-        driveAngle = MyMath.loopAngle(fieldAngle, spinAngle());
+        driveAngle = MyMath.loopAngle(fieldAngle, getCurrentAngle());
     }
 
 
@@ -338,6 +342,20 @@ abstract class DriveEngine {
     private int checkpointsLeft = 0;
     private ArrayList<String> keyList = new ArrayList<>();
 
+    enum Positioning
+    {
+        Absolute,
+        Relative
+    }
+
+    void updateCheckpoint()
+    {
+        lastCheckpoint = new double[]{trueX, trueY};
+    }
+    double[] lastCheckpoint = new double[]{trueX, trueY};
+
+
+
     boolean moveOnPath(double[] ... args){
         return moveOnPath(Positioning.Relative, args);
     }
@@ -355,19 +373,6 @@ abstract class DriveEngine {
         return false;
     }
 
-    enum Positioning
-    {
-        Absolute,
-        Relative
-    }
-
-
-    void updateCheckpoint()
-    {
-        lastCheckpoint = new double[]{trueX, trueY};
-    }
-    private double[] lastCheckpoint = new double[]{trueX, trueY};
-
     /**
      *@param positioning is the type of positioning system.
      *      Absolute is relative the origin point.
@@ -380,19 +385,15 @@ abstract class DriveEngine {
      */
     boolean moveOnPath(Positioning positioning, double[] ... args)
     {
-        if(checkpointsLeft == 0) {
-            checkpointsLeft = args.length;
-        }
-
-        int c = args.length - checkpointsLeft;
-        telemetry.addData("checkpoints count", c);
+        resetCheckpointsIfNeeded(args);
+        double[] checkpoint = getCurrentCheckpoint(args);
 
         double targetAngle = forward;
-        double currentAngle = spinAngle();
-        switch (args[c].length)
+        double currentAngle = getCurrentAngle();
+        switch (checkpoint.length)
         {
             case 1:
-                targetAngle = forward + args[c][0];
+                targetAngle = forward + checkpoint[0];
 
                 if(Math.abs(MyMath.loopAngle(targetAngle, currentAngle)) < MyMath.radians(2)) {
                     forward = targetAngle;
@@ -403,39 +404,13 @@ abstract class DriveEngine {
                 rotate(angularVelocityNeededToFace(targetAngle));
                 break;
             case 3:
-                targetAngle = forward + args[c][2];
+                targetAngle = forward + checkpoint[2];
 
             case 2:
-                double[] point = args[c];
+                double[] distances = distancesToTarget(positioning, checkpoint, currentAngle);
 
-                double deltaX=0, deltaY=0, trueDeltaX, trueDeltaY;
-
-                double fieldToRobotRotation = fieldAngle - currentAngle - driveAngle;
-
-                switch (positioning)
-                {
-                    case Absolute:
-                        //We know the difference between the target position and the robot's position in absolute coordinates
-                        trueDeltaX = point[0] - trueX;
-                        trueDeltaY = point[1] - trueY;
-                        //But we need to find out how the robot sees it; if it needs to move forward or backward.
-                        deltaX =  trueDeltaX * Math.cos(fieldToRobotRotation) - trueDeltaY * Math.sin(fieldToRobotRotation);
-                        deltaY =  trueDeltaX * Math.sin(fieldToRobotRotation) + trueDeltaY * Math.cos(fieldToRobotRotation);
-                        break;
-                    case Relative:
-                        //This part transfers the relative vector to where it should be: relative to robot forward.
-                        //We are finding trueXY (absolute) coordinates for the next checkpoint.
-                        double previousAngle = forward + driveAngle - fieldAngle; //angle between robot forward and field forward
-                        double truePointX = lastCheckpoint[0] + point[0] * Math.cos(previousAngle) - point[1] * Math.sin(previousAngle);
-                        double truePointY = lastCheckpoint[1] + point[1] * Math.sin(previousAngle) + point[0] * Math.cos(previousAngle);
-
-                        //Then we find deltaX and deltaY relative to the robot's current position.
-                        //Note that the last part was concerned with the robot's previous position.
-                        trueDeltaX = truePointX - trueX;
-                        trueDeltaY = truePointY - trueY;
-                        deltaX =  trueDeltaX * Math.cos(fieldToRobotRotation) - trueDeltaY * Math.sin(fieldToRobotRotation);
-                        deltaY =  trueDeltaX * Math.sin(fieldToRobotRotation) + trueDeltaY * Math.cos(fieldToRobotRotation);
-                }
+                double deltaX = distances[0];
+                double deltaY = distances[1];
 
                 if(motors.size() == 2)
                 {
@@ -444,8 +419,6 @@ abstract class DriveEngine {
                     targetAngle = Math.atan2(deltaY, deltaX);
                 }
 
-                telemetry.addData("deltaX", deltaX);
-                telemetry.addData("deltaY", deltaY);
 
                 double r = Math.hypot(deltaX, deltaY);
 
@@ -453,10 +426,11 @@ abstract class DriveEngine {
                 double spin = angularVelocityNeededToFace(targetAngle);
 
                 if(r <= .75){
-                    if(args[c].length == 3) {
+                    if(checkpoint.length == 3) {
                         sumSpinError = 0;
                     }
                     forward = targetAngle;
+                    updateCheckpoint();
                     checkpointsLeft--;
                     break;
                 }
@@ -472,6 +446,61 @@ abstract class DriveEngine {
         }
 
         return checkpointsLeft == 0;
+    }
+
+    double[] getCurrentCheckpoint(double[][] args)
+    {
+        int totalCheckpoints = args.length;
+
+        int c = totalCheckpoints - checkpointsLeft;
+        telemetry.addData("Current Checkpoint", c);
+        return args[c];
+    }
+
+    boolean resetCheckpointsIfNeeded(double[][] args)
+    {
+        int totalCheckpoints = args.length;
+        if(checkpointsLeft == 0) {
+            checkpointsLeft = totalCheckpoints;
+            return true;
+        }
+        return false;
+    }
+
+    double[] distancesToTarget(Positioning positioning, double[] target, double currentAngle)
+    {
+        double deltaX=0, deltaY=0, trueDeltaX, trueDeltaY;
+
+        double fieldToRobotRotation = fieldAngle - currentAngle - driveAngle;
+
+        switch (positioning)
+        {
+            case Absolute:
+                //We know the difference between the target position and the robot's position in absolute coordinates
+                trueDeltaX = target[0] - trueX;
+                trueDeltaY = target[1] - trueY;
+                //But we need to find out how the robot sees it; if it needs to move forward or backward.
+                deltaX =  trueDeltaX * Math.cos(fieldToRobotRotation) - trueDeltaY * Math.sin(fieldToRobotRotation);
+                deltaY =  trueDeltaX * Math.sin(fieldToRobotRotation) + trueDeltaY * Math.cos(fieldToRobotRotation);
+                break;
+            case Relative:
+                //This part transfers the relative vector to where it should be: relative to robot forward.
+                //We are finding trueXY (absolute) coordinates for the next checkpoint.
+                double previousAngle = forward + driveAngle - fieldAngle; //angle between robot forward and field forward
+                double truePointX = lastCheckpoint[0] + target[0] * Math.cos(previousAngle) - target[1] * Math.sin(previousAngle);
+                double truePointY = lastCheckpoint[1] + target[1] * Math.sin(previousAngle) + target[0] * Math.cos(previousAngle);
+
+                //Then we find deltaX and deltaY relative to the robot's current position.
+                //Note that the last part was concerned with the robot's previous position.
+                trueDeltaX = truePointX - trueX;
+                trueDeltaY = truePointY - trueY;
+                deltaX =  trueDeltaX * Math.cos(fieldToRobotRotation) - trueDeltaY * Math.sin(fieldToRobotRotation);
+                deltaY =  trueDeltaX * Math.sin(fieldToRobotRotation) + trueDeltaY * Math.cos(fieldToRobotRotation);
+        }
+        telemetry.addData("deltaX", deltaX);
+        telemetry.addData("deltaY", deltaY);
+
+        return new double[]{deltaX, deltaY};
     }
 
 
@@ -491,10 +520,10 @@ abstract class DriveEngine {
     /**
      * This method uses PID control to rotate the robot to a certain angle,
      *  or keep the robot facing forward.
-     * @param angle the robot should face.
+     * @param targetAngle the robot should face.
      * @return the rotating power needed to reach that angle
      */
-    private double angularVelocityNeededToFace(double angle)
+    private double angularVelocityNeededToFace(double targetAngle)
     {
         //    u(t) = MV(t) = P *( e(t) + 1/I* integral(0,t) (e(tau) *dtau) + 1/D *de(t)/dt )
         //    where
@@ -507,7 +536,7 @@ abstract class DriveEngine {
         //power per degree
         double i = sI;
 
-        double e = MyMath.loopAngle(angle, spinAngle());
+        double e = MyMath.loopAngle(targetAngle, getCurrentAngle());
         double de = e - lastSpinError; //change in angle
         double t = timer.seconds();
         double dt = t - lastSpinTime;  //change in t
@@ -531,7 +560,7 @@ abstract class DriveEngine {
 
     void resetCorrectionForwardToRobotForward()
     {
-        forward = spinAngle();
+        forward = getCurrentAngle();
         sumSpinError = 0;
     }
 
@@ -616,7 +645,7 @@ abstract class DriveEngine {
      * This method may need to be overridden if this is false.
      * @return The angle the robot has spun.
      */
-    double spinAngle()
+    double getCurrentAngle()
     {
         if(sensors.usingImu)
             return sensors.getImuHeading();
@@ -651,7 +680,7 @@ abstract class DriveEngine {
 
         double x = xDist();
         double y = yDist();
-        double spin = spinAngle();
+        double spin = getCurrentAngle();
         double dX = x - lastX;
         double dY = y - lastY;
 
@@ -674,6 +703,6 @@ abstract class DriveEngine {
      */
     void moveRobotOnScreen()
     {
-        Screen.moveRobotToPosition(trueX, trueY, spinAngle());
+        Screen.moveRobotToPosition(trueX, trueY, getCurrentAngle());
     }
 }

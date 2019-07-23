@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,7 +10,7 @@ import java.util.Arrays;
  */
 public class MyMath {
 
-    static double median(ArrayList<Double> values)
+    public static double median(ArrayList<Double> values)
     {
         Double[] copy = values.toArray(new Double[values.size()]);
         Arrays.sort(copy);
@@ -25,7 +25,7 @@ public class MyMath {
 
     }
 
-    static double ave(ArrayList<Double> values)
+    public static double ave(ArrayList<Double> values)
     {
         double sum = 0;
         for (double v:values) {
@@ -34,7 +34,7 @@ public class MyMath {
         return sum / values.size();
     }
 
-    static double dotProduct(double[] distances, double[] coefficients)
+    public static double dotProduct(double[] distances, double[] coefficients)
     {
         double sum = 0;
         for(int i = 0; i < distances.length; i++)
@@ -50,7 +50,7 @@ public class MyMath {
      * @param current angle in radians
      * @return the smallest signed difference between the two angles
      */
-    static double loopAngle(Number target, Number current)
+    public static double loopAngle(Number target, Number current)
     {
         double d = target.doubleValue() - current.doubleValue();
         while(d < -Math.PI) d += 2 * Math.PI; //keeps it between -pi and pi
@@ -64,7 +64,7 @@ public class MyMath {
      * @param angles: an ArrayList of angles in radians.
      * @return the average of several angles
      */
-    static double loopAve(ArrayList<? extends Number> angles)
+    public static double loopAve(ArrayList<? extends Number> angles)
     {
         double thetaAve = 0;
         for (int n = 0; n < angles.size(); n++) {
@@ -78,7 +78,7 @@ public class MyMath {
      * @param numbers: doubles separated by commas
      * @return the largest number
      */
-    static double max(double... numbers)
+    public static double max(double... numbers)
     {
         double max = Double.NEGATIVE_INFINITY;
         for (double n: numbers) {
@@ -93,7 +93,7 @@ public class MyMath {
      * @param numbers: doubles separated by commas
      * @return the smallest number
      */
-    static double min(double... numbers)
+    public static double min(double... numbers)
     {
         double min = Double.POSITIVE_INFINITY;
         for (double n: numbers) {
@@ -103,7 +103,7 @@ public class MyMath {
         return min;
     }
 
-    static double max(ArrayList<? extends Number> numbers)
+    public static double max(ArrayList<? extends Number> numbers)
     {
         Number max = Double.NEGATIVE_INFINITY;
         for (Number n: numbers) {
@@ -113,7 +113,7 @@ public class MyMath {
         return max.doubleValue();
     }
 
-    static double absoluteMax(double... numbers)
+    public static double absoluteMax(double... numbers)
     {
         double max = 0;
         for (double n: numbers)
@@ -121,7 +121,7 @@ public class MyMath {
                 max = Math.abs(n);
         return max;
     }
-    static double absoluteMax(ArrayList<? extends Number> numbers)
+    public static double absoluteMax(ArrayList<? extends Number> numbers)
     {
         double max = 0;
         for (Number n: numbers)
@@ -130,7 +130,7 @@ public class MyMath {
         return max;
     }
 
-    static double farthestFromZero(double... numbers)
+    public static double farthestFromZero(double... numbers)
     {
         double max = 0;
         for (double n: numbers)
@@ -139,7 +139,7 @@ public class MyMath {
         return max;
     }
 
-    static double closestToZero(double... numbers)
+    public static double closestToZero(double... numbers)
     {
         double min = 0;
         if(numbers.length > 0)
@@ -151,31 +151,31 @@ public class MyMath {
         return min;
     }
 
-    static double limitMagnitude(double value, double limit)
+    public static double limitMagnitude(double value, double limit)
     {
         return closestToZero(value, limit * Math.signum(value));
     }
 
-    static void trimFromFront(ArrayList<?> list, int size)
+    public static void trimFromFront(ArrayList<?> list, int size)
     {
         while(list.size() > size && list.size() > 0) {
             list.remove(0);
         }
     }
 
-    static void fill(ArrayList<Double> doubles, Number n)
+    public static void fill(ArrayList<Double> doubles, Number n)
     {
         for (int i = 0; i < doubles.size(); i++) {
             doubles.set(i, n.doubleValue());
         }
     }
 
-    static double radians(double degrees)
+    public static double radians(double degrees)
     {
         return degrees * Math.PI / 180;
     }
 
-    static double degrees(double radians)
+    public static double degrees(double radians)
     {
         return radians * 180 / Math.PI;
     }

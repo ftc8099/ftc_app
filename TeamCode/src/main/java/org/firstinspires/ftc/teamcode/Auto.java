@@ -5,8 +5,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
+import org.firstinspires.ftc.teamcode.util.MyMath;
 
-//Test gitpod
 
 public class Auto {
     Bogg robot;
@@ -19,6 +19,8 @@ public class Auto {
     Auto(HardwareMap hardwareMap, Telemetry telemetry)
     {
         this.robot = Bogg.determineRobot(hardwareMap, telemetry);
+        robot.setBrake(Bogg.Direction.On);
+        robot.dropMarker(Bogg.Direction.Up);
         robot.driveEngine.setInitialAngle(0);
         robot.driveEngine.setFieldAngle(-Math.PI /4);
         robot.driveEngine.setInitialPosition(6,6);
@@ -27,41 +29,54 @@ public class Auto {
         telemetry.addLine("Camera Loaded");
         telemetry.addData("Gold Pos: ", camera.getGoldPosition());
         telemetry.addLine("Wait for start");
-        telemetry.addData("TouchTop: ", robot.sensors.touchTopIsPressed());
-        telemetry.addData("TouchBottom: ", robot.sensors.touchBottomIsPressed());
         telemetry.update();
         timer = new ElapsedTime();
     }
 
-    public enum Mode
-    {
-        Drop,
-        Slide1,
-        LookForMinerals,
-        PushGold,
-        Slide2,
-        Slide2OneStep,
-        WaitToDetectPicture,
-        MoveToDepot,
-        DropMarker,
-        MoveToCrater,
-        Stop
+    interface Action{
+        Mode run(Auto auto);
     }
 
+    public enum Mode {
+        Drop(Auto::drop),
+        Slide1(Auto::slide1),
+        LookForMinerals(Auto::lookForMinerals),
+        PushGold(Auto::pushGold),
+        Slide2(Auto::slide2),
+        WaitToDetectPicture(Auto::waitToDetectPicture),
+        MoveToDepot(Auto::moveToDepot),
+        DropMarker(Auto::dropMarker),
+        MoveToCrater(Auto::moveToCrater),
+        Stop(Auto::stop),
+        Same(Auto::stop),
+        Next(Auto::stop);
+
+        Action action;
+
+        //Constructor for each Mode
+        Mode(Action action) {
+            this.action = action;
+        }
+
+    }
+
+    Mode run(Mode mode){
+        return mode.action.run(this);
+    }
 
     //Robot starts in the air with touchBottom and touchTop both false
     //Pull robot up until touchBottom is true
     //Then move brake
     //Then lower robot until touchTop is true
-    boolean movingBreak = false;
+    private boolean movingBrake = false;
 
-    Mode actuallyDrop()
+    private Mode drop()
     {
         robot.driveEngine.disableDistanceTracking();
-        if(!movingBreak)
+        if(!movingBrake)
         {
             timer.reset();
-            movingBreak = true;
+            movingBrake = true;
         }
         if(timer.seconds() < 2)
         {
@@ -78,33 +93,33 @@ public class Auto {
         else if(robot.sensors.touchTopIsPressed()){
             timer.reset();
             robot.lift(0); //Turns motor off
-            return Mode.LookForMinerals;
+            return Mode.Next;
         }
-        return Mode.Drop;
+        return Mode.Same;
     }
 
-    Mode lookForMinerals()
+    private Mode lookForMinerals()
     {
         telemetry.addLine("Looking for minerals");
         goldPosition = camera.getGoldPosition();
         if(goldPosition != -1) {
-            return Mode.Slide1;
+            return Mode.Next;
         }
-        return Mode.LookForMinerals;
+        return Mode.Same;
     }
 
-    Mode slide1()
+    private Mode slide1()
     {
         robot.driveEngine.enableDistanceTracking();
         if (robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
                 new double[]{3, 9}))
         {
-            return Mode.PushGold;
+            return Mode.Next;
         }
-        return Mode.Slide1;
+        return Mode.Same;
     }
 
-    Mode pushGold()
+    private Mode pushGold()
     {
         telemetry.addData("gold position", goldPosition);
         switch (goldPosition) {
@@ -112,38 +127,38 @@ public class Auto {
                 if (robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
                         new double[]{24, 48},
                         new double[]{12, 36})) {
-                    return Mode.Slide2;
+                    return Mode.Next;
                 }
                 break;
             case 1:
                 if (robot.driveEngine.moveOnPath(
                         new double[]{36, 36},
                         new double[]{24, 24})) {
-                    return Mode.Slide2;
+                    return Mode.Next;
                 }
                 break;
             case 2:
                 if (robot.driveEngine.moveOnPath(
                         new double[]{48, 24},
                         new double[]{36, 12})) {
-                    return Mode.Slide2;
+                    return Mode.Next;
                 }
                 break;
         }
 
-        return Mode.PushGold;
+        return Mode.Same;
     }
 
 
-    Mode slide2()
+    private Mode slide2()
     {
         telemetry.addData("time", getTime());
         if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
                 new double[]{0, 56, Math.PI / 4}))
         {
-            return Mode.WaitToDetectPicture;
+            return Mode.Next;
         }
-        return Mode.Slide2;
+        return Mode.Same;
     }
 
     private void setiSP(double[] location)
@@ -159,45 +174,45 @@ public class Auto {
 //    where the Blue Alliance Station is. (Positive is from the center, towards the BlueAlliance station)
 //    The Z axis runs from the floor, upwards towards the ceiling.  (Positive is above the floor)
 
-    Mode waitToDetectPicture()
+    private Mode waitToDetectPicture()
     {
         if(robot.name == Bogg.Name.Fakebot)
-            return Mode.MoveToDepot;
+            return Mode.Next;
 
         double[] location = camera.getLocation();
         if(location != null)
         {
             setiSP(location);
-            return Mode.MoveToDepot;
+            return Mode.Next;
         }
-        return Mode.WaitToDetectPicture;
+        return Mode.Same;
     }
 
 
-    Mode moveToDepot()
+    private Mode moveToDepot()
     {
         if(robot.driveEngine.moveOnPath(DriveEngine.Positioning.Absolute,
                 new double[]{-iSP * 56, 56, iSP * Math.PI/2})){
             timer.reset();
-            return Mode.DropMarker;
+            return Mode.Next;
         }
-        return Mode.MoveToDepot;
+        return Mode.Same;
     }
 
 
-    Mode dropMarker()
+    private Mode dropMarker()
     {
         robot.dropMarker(Bogg.Direction.Down);
 
         if(getTime() > .5) {  //time to drop marker
-            return Mode.MoveToCrater;
+            return Mode.Next;
         }
 
-        return Mode.DropMarker;
+        return Mode.Same;
     }
 
 
-    Mode moveToCrater()
+    private Mode moveToCrater()
     {
         robot.driveEngine.drive(0,2,true, 0,1);
         telemetry.addData("trueX", robot.driveEngine.trueX);
@@ -205,13 +220,13 @@ public class Auto {
 
         if(robot.sensors.usingImu)
             if (robot.sensors.isTilted())
-                    return Mode.Stop;
+                    return Mode.Next;
 
         if (robot.driveEngine.trueX * iSP > 24)
-            return Mode.Stop;
+            return Mode.Next;
 
 
-        return Mode.MoveToCrater;
+        return Mode.Same;
     }
 
 
@@ -299,7 +314,7 @@ public class Auto {
             double headingToTarget = drive[2];
             double r = Math.hypot(delta_x, delta_y);
 
-            if(Math.abs(MyMath.degrees(headingToTarget)) < 5 && r < .5)
+            if(Math.abs(MyMath.degrees(headingToTarget)) < 5 && r < .75)
                 return true;
             else
             {
