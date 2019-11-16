@@ -87,46 +87,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
            android:id="@+id/included_header"/>
 
   <RelativeLayout
-      android:id="@+id/RelativeLayout"
+    android:id="@+id/RelativeLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:keepScreenOn="true"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin" >
+
+    <TextView
+      android:id="@+id/textNetworkConnectionStatus"
       android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      android:background="@drawable/ftc_field"
-      android:keepScreenOn="true"
-      android:paddingLeft="@dimen/activity_horizontal_margin"
-      android:paddingTop="@dimen/activity_vertical_margin"
-      android:paddingRight="@dimen/activity_horizontal_margin"
-      android:paddingBottom="@dimen/activity_vertical_margin">
+      android:layout_height="wrap_content"
+      android:visibility="invisible"
+      android:text="" />
 
     <TextView
-        android:id="@+id/textNetworkConnectionStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:visibility="invisible" />
+      android:id="@+id/textRobotStatus"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_below="@+id/textNetworkConnectionStatus"
+      android:visibility="invisible"
+      android:text="" />
 
     <TextView
-        android:id="@+id/textRobotStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/textNetworkConnectionStatus"
-        android:text=""
-        android:visibility="invisible" />
-
-    <TextView
-        android:id="@+id/textOpMode"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/textRobotStatus"
-        android:background="@color/bright_purple"
-        android:text=""
-        android:textColor="@color/text_white"
-        android:visibility="invisible" />
+      android:id="@+id/textOpMode"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_below="@+id/textRobotStatus"
+      android:visibility="invisible"
+      android:text="" />
 
     <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/textGamepad1"
-        android:layout_below="@+id/textOpMode">
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_below="@+id/textOpMode"
+      android:layout_above="@+id/textGamepad1">
 
       <LinearLayout
           android:id="@+id/monitorContainer"
@@ -136,67 +133,52 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <LinearLayout
             android:id="@+id/cameraMonitorViewId"
+            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:visibility="gone" />
-
+            />
         <FrameLayout
             android:id="@+id/tfodMonitorViewId"
+            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:visibility="gone" />
+            />
 
-      </LinearLayout>
+        </LinearLayout>
 
       <!-- When visible, the error message will overlay and thus partially
            obscure part of the camera monitor. We make this trade off so as to
            allow for a bigger camera monitor view in the common case when the
            error is not in fact present
         -->
-      <TextView
-          android:id="@+id/textErrorMessage"
-          style="@style/FtcTextViewStyleBold"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:text=""
-          android:textColor="?attr/textMediumDark"
-          android:visibility="invisible" />
+        <TextView style="@style/FtcTextViewStyleBold"
+            android:id="@+id/textErrorMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:visibility="invisible"
+            android:textColor="?attr/textMediumDark" />
 
     </FrameLayout>
 
     <TextView
-        android:id="@+id/textGamepad1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/textGamepad2"
-        android:text=""
-        android:visibility="invisible" />
+      android:id="@+id/textGamepad1"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_above="@+id/textGamepad2"
+      android:visibility="invisible"
+      android:text="" />
 
     <TextView
-        android:id="@+id/textGamepad2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:text=""
-        android:visibility="invisible" />
-
-    <!-- invisible except when programming mode is activated from the DS -->
-    <TextView
-        android:id="@+id/textRemoteProgrammingMode"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignTop="@+id/textOpMode"
-        android:layout_marginTop="-38dp"
-        android:background="?attr/backgroundLight"
-        android:gravity="center"
-        android:text=""
-        android:textColor="?attr/textWhite"
-        android:textSize="40sp"
-        android:textStyle="bold"
-        android:visibility="invisible" />
+      android:id="@+id/textGamepad2"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_alignParentBottom="true"
+      android:visibility="invisible"
+      android:text="" />
 
   </RelativeLayout>
 

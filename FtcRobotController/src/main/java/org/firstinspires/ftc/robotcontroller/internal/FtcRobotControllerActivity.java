@@ -43,7 +43,6 @@ import android.content.res.Resources;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
@@ -61,9 +60,6 @@ import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 
-import com.google.blocks.ftcrobotcontroller.BlocksActivity;
-import com.google.blocks.ftcrobotcontroller.ProgrammingModeActivity;
-import com.google.blocks.ftcrobotcontroller.ProgrammingModeControllerImpl;
 import com.google.blocks.ftcrobotcontroller.ProgrammingWebHandlers;
 import com.google.blocks.ftcrobotcontroller.runtime.BlocksOpMode;
 import com.qualcomm.ftccommon.ClassManagerFactory;
@@ -75,7 +71,6 @@ import com.qualcomm.ftccommon.FtcRobotControllerService.FtcRobotControllerBinder
 import com.qualcomm.ftccommon.FtcRobotControllerSettingsActivity;
 import com.qualcomm.ftccommon.LaunchActivityConstantsList;
 import com.qualcomm.ftccommon.LaunchActivityConstantsList.RequestCode;
-import com.qualcomm.ftccommon.ProgrammingModeController;
 import com.qualcomm.ftccommon.Restarter;
 import com.qualcomm.ftccommon.UpdateUI;
 import com.qualcomm.ftccommon.configuration.EditParameters;
@@ -89,10 +84,13 @@ import com.qualcomm.robotcore.eventloop.opmode.FtcRobotControllerServiceState;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegister;
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants;
 import com.qualcomm.robotcore.hardware.configuration.Utility;
+import com.qualcomm.robotcore.robot.Robot;
+import com.qualcomm.robotcore.robot.RobotState;
 import com.qualcomm.robotcore.util.Device;
 import com.qualcomm.robotcore.util.Dimmer;
 import com.qualcomm.robotcore.util.ImmersiveMode;
 import com.qualcomm.robotcore.util.RobotLog;
+import com.qualcomm.robotcore.util.WebServer;
 import com.qualcomm.robotcore.wifi.NetworkConnection;
 import com.qualcomm.robotcore.wifi.NetworkConnectionFactory;
 import com.qualcomm.robotcore.wifi.NetworkType;
@@ -100,37 +98,35 @@ import com.qualcomm.robotcore.wifi.NetworkType;
 import org.firstinspires.ftc.ftccommon.external.SoundPlayingRobotMonitor;
 import org.firstinspires.ftc.ftccommon.internal.FtcRobotControllerWatchdogService;
 import org.firstinspires.ftc.ftccommon.internal.ProgramAndManageActivity;
+import org.firstinspires.ftc.onbotjava.OnBotJavaHelperImpl;
+import org.firstinspires.ftc.onbotjava.OnBotJavaProgrammingMode;
 import org.firstinspires.ftc.robotcore.external.navigation.MotionDetection;
-import org.firstinspires.ftc.robotcore.internal.hardware.DragonboardLynxDragonboardIsPresentPin;
+import org.firstinspires.ftc.robotcore.internal.hardware.android.AndroidBoard;
 import org.firstinspires.ftc.robotcore.internal.network.DeviceNameManagerFactory;
 import org.firstinspires.ftc.robotcore.internal.network.PreferenceRemoterRC;
 import org.firstinspires.ftc.robotcore.internal.network.StartResult;
+import org.firstinspires.ftc.robotcore.internal.network.WifiDirectChannelChanger;
 import org.firstinspires.ftc.robotcore.internal.network.WifiMuteEvent;
 import org.firstinspires.ftc.robotcore.internal.network.WifiMuteStateMachine;
+import org.firstinspires.ftc.robotcore.internal.opmode.ClassManager;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.robotcore.internal.system.Assert;
 import org.firstinspires.ftc.robotcore.internal.system.PreferencesHelper;
 import org.firstinspires.ftc.robotcore.internal.system.ServiceController;
-import org.firstinspires.ftc.robotcore.internal.ui.LocalByRefIntentExtraHolder;
 import org.firstinspires.ftc.robotcore.internal.ui.ThemedActivity;
 import org.firstinspires.ftc.robotcore.internal.ui.UILocation;
 import org.firstinspires.ftc.robotcore.internal.webserver.RobotControllerWebInfo;
-import org.firstinspires.ftc.robotcore.internal.webserver.WebServer;
+import org.firstinspires.ftc.robotserver.internal.programmingmode.ProgrammingModeManager;
 import org.firstinspires.inspection.RcInspectionActivity;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 @SuppressWarnings("WeakerAccess")
-public class FtcRobotControllerActivity extends Activity {
-  public static FtcRobotControllerActivity a;
-  public Runnable r;
-
+public class FtcRobotControllerActivity extends Activity
+  {
   public static final String TAG = "RCActivity";
-
-  public String getTag() {
-    return TAG;
-  }
+  public String getTag() { return TAG; }
 
   private static final int REQUEST_CONFIG_WIFI_CHANNEL = 1;
   private static final int NUM_GAMEPADS = 2;
@@ -138,8 +134,7 @@ public class FtcRobotControllerActivity extends Activity {
   protected WifiManager.WifiLock wifiLock;
   protected RobotConfigFileManager cfgFileMgr;
 
-  protected ProgrammingWebHandlers programmingWebHandlers;
-  protected ProgrammingModeController programmingModeController;
+  protected ProgrammingModeManager programmingModeManager;
 
   protected UpdateUI.Callback callback;
   protected Context context;
@@ -162,10 +157,6 @@ public class FtcRobotControllerActivity extends Activity {
   protected Dimmer dimmer;
   protected LinearLayout entireScreenLayout;
 
-  public static int imageX = 400;
-  public static int imageY = 200;
-  public static int imageSpin = 0;
-
   protected FtcRobotControllerService controllerService;
   protected NetworkType networkType;
 
@@ -175,6 +166,10 @@ public class FtcRobotControllerActivity extends Activity {
   protected WifiMuteStateMachine wifiMuteStateMachine;
   protected MotionDetection motionDetection;
 
+  private static boolean permissionsValidated = false;
+
+  private WifiDirectChannelChanger wifiDirectChannelChanger;
+
   protected class RobotRestarter implements Restarter {
 
     public void requestRestart() {
@@ -183,6 +178,7 @@ public class FtcRobotControllerActivity extends Activity {
 
   }
 
+  protected boolean serviceShouldUnbind = false;
   protected ServiceConnection connection = new ServiceConnection() {
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
@@ -218,13 +214,14 @@ public class FtcRobotControllerActivity extends Activity {
 
   protected void passReceivedUsbAttachmentsToEventLoop() {
     if (this.eventLoop != null) {
-      for (; ; ) {
+      for (;;) {
         UsbDevice usbDevice = receivedUsbAttachmentNotifications.poll();
         if (usbDevice == null)
           break;
         this.eventLoop.onUsbDeviceAttached(usbDevice);
       }
-    } else {
+    }
+    else {
       // Paranoia: we don't want the pending list to grow without bound when we don't
       // (yet) have an event loop
       while (receivedUsbAttachmentNotifications.size() > 100) {
@@ -233,10 +230,35 @@ public class FtcRobotControllerActivity extends Activity {
     }
   }
 
+  /**
+   * There are cases where a permission may be revoked and the system restart will restart the
+   * FtcRobotControllerActivity, instead of the launch activity.  Detect when that happens, and throw
+   * the device back to the permission validator activity.
+   */
+  protected boolean enforcePermissionValidator() {
+    if (!permissionsValidated) {
+      RobotLog.vv(TAG, "Redirecting to permission validator");
+      Intent permissionValidatorIntent = new Intent(AppUtil.getDefContext(), PermissionValidatorWrapper.class);
+      startActivity(permissionValidatorIntent);
+      finish();
+      return true;
+    } else {
+      RobotLog.vv(TAG, "Permissions validated already");
+      return false;
+    }
+  }
+
+  public static void setPermissionsValidated() {
+    permissionsValidated = true;
+  }
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    a = this;
+
+    if (enforcePermissionValidator()) {
+      return;
+    }
 
     RobotLog.onApplicationStart();  // robustify against onCreate() following onDestroy() but using the same app instance, which apparently does happen
     RobotLog.vv(TAG, "onCreate()");
@@ -244,20 +266,21 @@ public class FtcRobotControllerActivity extends Activity {
 
     // Oddly, sometimes after a crash & restart the root activity will be something unexpected, like from the before crash? We don't yet understand
     RobotLog.vv(TAG, "rootActivity is of class %s", AppUtil.getInstance().getRootActivity().getClass().getSimpleName());
-    Assert.assertTrue(FtcRobotControllerWatchdogService.isFtcRobotControllerActivity(AppUtil.getInstance().getRootActivity()));
+    RobotLog.vv(TAG, "launchActivity is of class %s", FtcRobotControllerWatchdogService.launchActivity());
+    Assert.assertTrue(FtcRobotControllerWatchdogService.isLaunchActivity(AppUtil.getInstance().getRootActivity()));
     Assert.assertTrue(AppUtil.getInstance().isRobotController());
 
     // Quick check: should we pretend we're not here, and so allow the Lynx to operate as
     // a stand-alone USB-connected module?
     if (LynxConstants.isRevControlHub()) {
-      if (LynxConstants.disableDragonboard()) {
+      if (LynxConstants.shouldDisableAndroidBoard()) {
         // Double-sure check that the Lynx Module can operate over USB, etc, then get out of Dodge
         RobotLog.vv(TAG, "disabling Dragonboard and exiting robot controller");
-        DragonboardLynxDragonboardIsPresentPin.getInstance().setState(false);
+        AndroidBoard.getInstance().getAndroidBoardIsPresentPin().setState(false);
         AppUtil.getInstance().finishRootActivityAndExitApp();
       } else {
         // Double-sure check that we can talk to the DB over the serial TTY
-        DragonboardLynxDragonboardIsPresentPin.getInstance().setState(true);
+        AndroidBoard.getInstance().getAndroidBoardIsPresentPin().setState(true);
       }
     }
 
@@ -298,8 +321,18 @@ public class FtcRobotControllerActivity extends Activity {
 
     BlocksOpMode.setActivityAndWebView(this, (WebView) findViewById(R.id.webViewBlocksRuntime));
 
-    ClassManagerFactory.registerFilters();
-    ClassManagerFactory.processAllClasses();
+    /*
+     * Paranoia as the ClassManagerFactory requires EXTERNAL_STORAGE permissions
+     * and we've seen on the DS where the finish() call above does not short-circuit
+     * the onCreate() call for the activity and then we crash here because we don't
+     * have permissions. So...
+     */
+    if (permissionsValidated) {
+      ClassManager.getInstance().setOnBotJavaClassHelper(new OnBotJavaHelperImpl());
+      ClassManagerFactory.registerFilters();
+      ClassManagerFactory.processAllClasses();
+    }
+
     cfgFileMgr = new RobotConfigFileManager(this);
 
     // Clean up 'dirty' status after a possible crash
@@ -313,7 +346,6 @@ public class FtcRobotControllerActivity extends Activity {
     textNetworkConnectionStatus = (TextView) findViewById(R.id.textNetworkConnectionStatus);
     textRobotStatus = (TextView) findViewById(R.id.textRobotStatus);
     textOpMode = (TextView) findViewById(R.id.textOpMode);
-    placeImage(200, 400, 0);
     textErrorMessage = (TextView) findViewById(R.id.textErrorMessage);
     textGamepad[0] = (TextView) findViewById(R.id.textGamepad1);
     textGamepad[1] = (TextView) findViewById(R.id.textGamepad2);
@@ -321,9 +353,9 @@ public class FtcRobotControllerActivity extends Activity {
     dimmer = new Dimmer(this);
     dimmer.longBright();
 
-    programmingWebHandlers = new ProgrammingWebHandlers();
-    programmingModeController = new ProgrammingModeControllerImpl(
-            this, (TextView) findViewById(R.id.textRemoteProgrammingMode), programmingWebHandlers);
+    programmingModeManager = new ProgrammingModeManager();
+    programmingModeManager.register(new ProgrammingWebHandlers());
+    programmingModeManager.register(new OnBotJavaProgrammingMode());
 
     updateUI = createUpdateUI();
     callback = createUICallback(updateUI);
@@ -342,6 +374,7 @@ public class FtcRobotControllerActivity extends Activity {
     bindToService();
     logPackageVersions();
     logDeviceSerialNumber();
+    AndroidBoard.getInstance().logAndroidBoardInfo();
     RobotLog.logDeviceInfo();
 
     if (preferencesHelper.readBoolean(getString(R.string.pref_wifi_automute), false)) {
@@ -354,9 +387,6 @@ public class FtcRobotControllerActivity extends Activity {
     UpdateUI result = new UpdateUI(this, dimmer);
     result.setRestarter(restarter);
     result.setTextViews(textNetworkConnectionStatus, textRobotStatus, textGamepad, textOpMode, textErrorMessage, textDeviceName);
-    textOpMode.setText("2");
-    textOpMode.setFreezesText(true);
-    placeImage(imageX, imageY, 0);
     return result;
   }
 
@@ -379,6 +409,9 @@ public class FtcRobotControllerActivity extends Activity {
 
     cfgFileMgr.getActiveConfigAndUpdateUI();
 
+    // check to see if there is a preferred Wi-Fi to use.
+    checkPreferredChannel();
+
     entireScreenLayout.setOnTouchListener(new View.OnTouchListener() {
       @Override
       public boolean onTouch(View v, MotionEvent event) {
@@ -398,9 +431,6 @@ public class FtcRobotControllerActivity extends Activity {
   protected void onPause() {
     super.onPause();
     RobotLog.vv(TAG, "onPause()");
-    if (programmingModeController.isActive()) {
-      programmingModeController.stopProgrammingMode();
-    }
   }
 
   @Override
@@ -425,9 +455,9 @@ public class FtcRobotControllerActivity extends Activity {
     unbindFromService();
     // If the app manually (?) is stopped, then we don't need the auto-starting function (?)
     ServiceController.stopService(FtcRobotControllerWatchdogService.class);
-    wifiLock.release();
+    if (wifiLock != null) wifiLock.release();
+    if (preferencesHelper != null) preferencesHelper.getSharedPreferences().unregisterOnSharedPreferenceChangeListener(sharedPreferencesListener);
 
-    preferencesHelper.getSharedPreferences().unregisterOnSharedPreferenceChangeListener(sharedPreferencesListener);
     RobotLog.cancelWriteLogcatToDisk();
   }
 
@@ -435,12 +465,13 @@ public class FtcRobotControllerActivity extends Activity {
     readNetworkType();
     Intent intent = new Intent(this, FtcRobotControllerService.class);
     intent.putExtra(NetworkConnectionFactory.NETWORK_CONNECTION_TYPE, networkType);
-    bindService(intent, connection, Context.BIND_AUTO_CREATE);
+    serviceShouldUnbind = bindService(intent, connection, Context.BIND_AUTO_CREATE);
   }
 
   protected void unbindFromService() {
-    if (controllerService != null) {
+    if (serviceShouldUnbind) {
       unbindService(connection);
+      serviceShouldUnbind = false;
     }
   }
 
@@ -454,7 +485,7 @@ public class FtcRobotControllerActivity extends Activity {
   }
 
   protected void logDeviceSerialNumber() {
-    RobotLog.ii(TAG, "410c serial number: " + Build.SERIAL);
+    RobotLog.ii(TAG, "Android device serial number: " + Device.getSerialNumberOrUnknown());
   }
 
   protected void readNetworkType() {
@@ -481,13 +512,13 @@ public class FtcRobotControllerActivity extends Activity {
   }
 
   @Override
-  public void onWindowFocusChanged(boolean hasFocus) {
+  public void onWindowFocusChanged(boolean hasFocus){
     super.onWindowFocusChanged(hasFocus);
     // When the window loses focus (e.g., the action overflow is shown),
     // cancel any pending hide action. When the window gains focus,
     // hide the system UI.
     if (hasFocus) {
-      if (ImmersiveMode.apiOver19()) {
+      if (ImmersiveMode.apiOver19()){
         // Immersive flag only works on API 19 and above.
         immersion.hideSystemUI();
       }
@@ -503,61 +534,72 @@ public class FtcRobotControllerActivity extends Activity {
     return true;
   }
 
+  private boolean isRobotRunning() {
+    if (controllerService == null) {
+      return false;
+    }
+
+    Robot robot = controllerService.getRobot();
+
+    if ((robot == null) || (robot.eventLoopManager == null)) {
+      return false;
+    }
+
+    RobotState robotState = robot.eventLoopManager.state;
+
+    if (robotState != RobotState.RUNNING) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
     int id = item.getItemId();
 
-    if (id == R.id.action_programming_mode) {
-      if (cfgFileMgr.getActiveConfig().isNoConfig()) {
-        // Tell the user they must configure the robot before starting programming mode.
-        // TODO: as we are no longer truly 'modal' this warning should be adapted
-        AppUtil.getInstance().showToast(UILocation.BOTH, context, context.getString(R.string.toastConfigureRobotBeforeProgrammingMode));
-      } else {
-        Intent programmingModeIntent = new Intent(AppUtil.getDefContext(), ProgrammingModeActivity.class);
-        programmingModeIntent.putExtra(
-                LaunchActivityConstantsList.PROGRAMMING_MODE_ACTIVITY_PROGRAMMING_WEB_HANDLERS,
-                new LocalByRefIntentExtraHolder(programmingWebHandlers));
+    if (id == R.id.action_program_and_manage) {
+      if (isRobotRunning()) {
+        Intent programmingModeIntent = new Intent(AppUtil.getDefContext(), ProgramAndManageActivity.class);
+        RobotControllerWebInfo webInfo = programmingModeManager.getWebServer().getConnectionInformation();
+        programmingModeIntent.putExtra(LaunchActivityConstantsList.RC_WEB_INFO, webInfo.toJson());
         startActivity(programmingModeIntent);
+      } else {
+        AppUtil.getInstance().showToast(UILocation.ONLY_LOCAL, context.getString(R.string.toastWifiUpBeforeProgrammingMode));
       }
-      return true;
-    } else if (id == R.id.action_program_and_manage) {
-      Intent programmingModeIntent = new Intent(AppUtil.getDefContext(), ProgramAndManageActivity.class);
-      RobotControllerWebInfo webInfo = programmingWebHandlers.getWebServer().getConnectionInformation();
-      programmingModeIntent.putExtra(LaunchActivityConstantsList.RC_WEB_INFO, webInfo.toJson());
-      startActivity(programmingModeIntent);
     } else if (id == R.id.action_inspection_mode) {
       Intent inspectionModeIntent = new Intent(AppUtil.getDefContext(), RcInspectionActivity.class);
       startActivity(inspectionModeIntent);
       return true;
-    } else if (id == R.id.action_blocks) {
-      Intent blocksIntent = new Intent(AppUtil.getDefContext(), BlocksActivity.class);
-      startActivity(blocksIntent);
-      return true;
     } else if (id == R.id.action_restart_robot) {
       dimmer.handleDimTimer();
-      AppUtil.getInstance().showToast(UILocation.BOTH, context, context.getString(R.string.toastRestartingRobot));
+      AppUtil.getInstance().showToast(UILocation.BOTH, context.getString(R.string.toastRestartingRobot));
       requestRobotRestart();
       return true;
-    } else if (id == R.id.action_configure_robot) {
+    }
+    else if (id == R.id.action_configure_robot) {
       EditParameters parameters = new EditParameters();
       Intent intentConfigure = new Intent(AppUtil.getDefContext(), FtcLoadFileActivity.class);
       parameters.putIntent(intentConfigure);
       startActivityForResult(intentConfigure, RequestCode.CONFIGURE_ROBOT_CONTROLLER.ordinal());
-    } else if (id == R.id.action_settings) {
-      // historical: this once erroneously used FTC_CONFIGURE_REQUEST_CODE_ROBOT_CONTROLLER
+    }
+    else if (id == R.id.action_settings) {
+	  // historical: this once erroneously used FTC_CONFIGURE_REQUEST_CODE_ROBOT_CONTROLLER
       Intent settingsIntent = new Intent(AppUtil.getDefContext(), FtcRobotControllerSettingsActivity.class);
       startActivityForResult(settingsIntent, RequestCode.SETTINGS_ROBOT_CONTROLLER.ordinal());
       return true;
-    } else if (id == R.id.action_about) {
+    }
+    else if (id == R.id.action_about) {
       Intent intent = new Intent(AppUtil.getDefContext(), FtcAboutActivity.class);
       startActivity(intent);
       return true;
-    } else if (id == R.id.action_exit_app) {
+    }
+    else if (id == R.id.action_exit_app) {
       finish();
       return true;
     }
 
-    return super.onOptionsItemSelected(item);
+   return super.onOptionsItemSelected(item);
   }
 
   @Override
@@ -595,7 +637,7 @@ public class FtcRobotControllerActivity extends Activity {
   protected void onActivityResult(int request, int result, Intent intent) {
     if (request == REQUEST_CONFIG_WIFI_CHANNEL) {
       if (result == RESULT_OK) {
-        AppUtil.getInstance().showToast(UILocation.BOTH, context, context.getString(R.string.toastWifiConfigurationComplete));
+        AppUtil.getInstance().showToast(UILocation.BOTH, context.getString(R.string.toastWifiConfigurationComplete));
       }
     }
     // was some historical confusion about launch codes here, so we err safely
@@ -611,7 +653,7 @@ public class FtcRobotControllerActivity extends Activity {
     updateUI.setControllerService(controllerService);
 
     updateUIAndRequestRobotSetup();
-    programmingWebHandlers.setState(new FtcRobotControllerServiceState() {
+    programmingModeManager.setState(new FtcRobotControllerServiceState() {
       @NonNull
       @Override
       public WebServer getWebServer() {
@@ -631,13 +673,12 @@ public class FtcRobotControllerActivity extends Activity {
       callback.updateRobotStatus(controllerService.getRobotStatus());
       // Only show this first-time toast on headless systems: what we have now on non-headless suffices
       requestRobotSetup(LynxConstants.isRevControlHub()
-              ? new Runnable() {
-        @Override
-        public void run() {
-          showRestartRobotCompleteToast(R.string.toastRobotSetupComplete);
-        }
-      }
-              : null);
+        ? new Runnable() {
+            @Override public void run() {
+              showRestartRobotCompleteToast(R.string.toastRobotSetupComplete);
+            }
+          }
+        : null);
     }
   }
 
@@ -655,13 +696,14 @@ public class FtcRobotControllerActivity extends Activity {
     }
 
     OpModeRegister userOpModeRegister = createOpModeRegister();
-    eventLoop = new FtcEventLoop(hardwareFactory, userOpModeRegister, callback, this, programmingModeController);
-    FtcEventLoopIdle idleLoop = new FtcEventLoopIdle(hardwareFactory, userOpModeRegister, callback, this, programmingModeController);
+    eventLoop = new FtcEventLoop(hardwareFactory, userOpModeRegister, callback, this);
+    FtcEventLoopIdle idleLoop = new FtcEventLoopIdle(hardwareFactory, userOpModeRegister, callback, this);
 
     controllerService.setCallback(callback);
     controllerService.setupRobot(eventLoop, idleLoop, runOnComplete);
 
     passReceivedUsbAttachmentsToEventLoop();
+    AndroidBoard.showErrorIfUnknownControlHub();
   }
 
   protected OpModeRegister createOpModeRegister() {
@@ -679,15 +721,32 @@ public class FtcRobotControllerActivity extends Activity {
     RobotLog.clearGlobalWarningMsg();
     shutdownRobot();
     requestRobotSetup(new Runnable() {
-      @Override
-      public void run() {
+      @Override public void run() {
         showRestartRobotCompleteToast(R.string.toastRestartRobotComplete);
-      }
-    });
+        }
+      });
   }
 
   private void showRestartRobotCompleteToast(@StringRes int resid) {
     AppUtil.getInstance().showToast(UILocation.BOTH, AppUtil.getDefContext().getString(resid));
+  }
+
+  private void checkPreferredChannel() {
+    // For P2P network, check to see what preferred channel is.
+    if (networkType ==  NetworkType.WIFIDIRECT) {
+      int prefChannel = preferencesHelper.readInt(getString(com.qualcomm.ftccommon.R.string.pref_wifip2p_channel), -1);
+      if (prefChannel == -1) {
+        prefChannel = 0;
+        RobotLog.vv(TAG, "pref_wifip2p_channel: No preferred channel defined. Will use a default value of %d", prefChannel);
+      } else {
+        RobotLog.vv(TAG, "pref_wifip2p_channel: Found existing preferred channel (%d).", prefChannel);
+      }
+
+      // attempt to set the preferred channel.
+      RobotLog.vv(TAG, "pref_wifip2p_channel: attempting to set preferred channel...");
+      wifiDirectChannelChanger = new WifiDirectChannelChanger();
+      wifiDirectChannelChanger.changeToChannel(prefChannel);
+    }
   }
 
   protected void hittingMenuButtonBrightensScreen() {
@@ -705,8 +764,7 @@ public class FtcRobotControllerActivity extends Activity {
   }
 
   protected class SharedPreferencesListener implements SharedPreferences.OnSharedPreferenceChangeListener {
-    @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+    @Override public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
       if (key.equals(context.getString(R.string.pref_app_theme))) {
         ThemedActivity.restartForAppThemeChange(getTag(), getString(R.string.appThemeChangeRestartNotifyRC));
       } else if (key.equals(context.getString(R.string.pref_wifi_automute))) {
@@ -729,7 +787,8 @@ public class FtcRobotControllerActivity extends Activity {
       motionDetection.startListening();
       motionDetection.registerListener(new MotionDetection.MotionDetectionListener() {
         @Override
-        public void onMotionDetected(double vector) {
+        public void onMotionDetected(double vector)
+        {
           wifiMuteStateMachine.consumeEvent(WifiMuteEvent.USER_ACTIVITY);
         }
       });
@@ -747,61 +806,5 @@ public class FtcRobotControllerActivity extends Activity {
     if (wifiMuteStateMachine != null) {
       wifiMuteStateMachine.consumeEvent(WifiMuteEvent.USER_ACTIVITY);
     }
-  }
-
-  @Override
-  public boolean onTouchEvent(MotionEvent event) {
-    updateUI.setTextViews(textNetworkConnectionStatus, textRobotStatus, textGamepad, textErrorMessage, textErrorMessage, textDeviceName);
-    r.run();
-    imageX = (int)event.getX();
-    imageY = (int)event.getY();
-    placeImage(imageX, imageY, imageSpin);
-
-    super.onTouchEvent(event);
-    return false;
-  }
-
-  /**
-   * This method runs on a FtcRobotControllerActivity object, on the UI thread.
-   * It sets the textbox's text, positioning, size, and rotation.
-   * @param X
-   * @param Y
-   * @param spin
-   */
-  public void placeImage(int X, int Y, double spin) {
-
-    if (textOpMode == null)
-      return;
-
-    //Sets the boundaries of the textbox.
-    int textThickness = 25;
-    int textHeight = 40;
-    textOpMode.layout(X, Y, X + textThickness, Y + textHeight);
-    textOpMode.setCompoundDrawablesWithIntrinsicBounds(R.drawable.tiny_picture, 0, 0, 0);
-    //textOpMode.setText("O");
-    textOpMode.setTextSize(20);
-    textOpMode.setRotation((float) -spin);
-  }
-
-  /**
-   * This method changes where the robot is located on the screen.
-   * @param x
-   * @param y
-   * @param spin
-   */
-  public static void moveRobot(double x, double y, final double spin) {
-    //The origin point must be moved to where you want it on the field.
-    //On the phone, 0,0 is in the top left corner.
-    //Positive is down and to the right.
-    imageX = (int) x;
-    imageY = (int) y;
-    imageSpin = (int) spin;
-
-    a.runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        a.placeImage(imageX, imageY, imageSpin);
-      }
-    });
   }
 }
