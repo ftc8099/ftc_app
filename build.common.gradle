@@ -39,7 +39,7 @@ android {
 
     defaultConfig {
         applicationId 'com.qualcomm.ftcrobotcontroller'
-        minSdkVersion 25
+        minSdkVersion 22
         targetSdkVersion 25
 
         /**
